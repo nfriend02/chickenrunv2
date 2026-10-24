@@ -1,4 +1,5 @@
 import { soundSynth } from '../audio/SoundSynth.js';
+import { SpriteAnimator } from '../animation/SpriteAnimator.js';
 
 /**
  * behavior: static | wander | rush | zone
@@ -8,10 +9,10 @@ import { soundSynth } from '../audio/SoundSynth.js';
 export const ObstacleDefs = {
   haystack: { name: '건초더미', image: '/assets/images/fixtures/haystack.png', height: 1.5, halfLen: 0.55, halfWidth: 0.75, behavior: 'static' },
   fence: { name: '나무 울타리', image: '/assets/images/fixtures/fence.png', height: 1.25, halfLen: 0.3, halfWidth: 1.0, behavior: 'static' },
-  dog: { name: '시골 강아지', image: '/assets/images/npcs/dog.png', height: 1.25, halfLen: 0.45, halfWidth: 0.5, behavior: 'wander', wanderAmp: 0.35, wanderFreq: 1.4, approach: 1.5 },
+  dog: { name: '시골 강아지', image: '/assets/images/npcs/dog.png', anim: ['dog', 'move'], height: 1.25, halfLen: 0.45, halfWidth: 0.5, behavior: 'wander', wanderAmp: 0.35, wanderFreq: 1.4, approach: 1.5 },
   duck: { name: '오리', image: '/assets/images/npcs/duck.png', height: 1.0, halfLen: 0.35, halfWidth: 0.4, behavior: 'wander', wanderAmp: 0.45, wanderFreq: 0.9, approach: 0.6 },
   pond: { name: '오리 연못', image: '/assets/stages/stage01/props/duck_pond.webp', height: 1.2, halfLen: 1.1, halfWidth: 1.3, behavior: 'zone', lanes: [-0.45, 0.45] },
-  cow_rushing: { name: '돌진 황소', image: '/assets/images/npcs/cow_rushing.png', height: 1.9, halfLen: 0.6, halfWidth: 0.7, behavior: 'rush', rushSpeed: 11, warnTime: 0.9 },
+  cow_rushing: { name: '돌진 황소', image: '/assets/images/npcs/cow_rushing.png', anim: ['cow_rushing', 'move'], height: 1.9, halfLen: 0.6, halfWidth: 0.7, behavior: 'rush', rushSpeed: 11, warnTime: 0.9 },
   popcorn_machine: { name: '뻥튀기 기계', image: '/assets/images/fixtures/popcorn_machine.png', height: 2.0, halfLen: 0.6, halfWidth: 0.8, behavior: 'static' }
 };
 
@@ -36,6 +37,25 @@ export class Obstacle {
     this.animTime = 0;
 
     this.sprite = renderer.createBillboard(this.def.image, this.def.height);
+    this.animator = this.def.anim ? new SpriteAnimator(this.sprite) : null;
+  }
+
+  /** Swaps the static PNG for the sprite-sheet clip once the clip has loaded. */
+  animate(dt, speed = 1) {
+    if (!this.animator) return false;
+    const shared = this.renderer.anims.get(this.def.anim[0], this.def.anim[1]);
+    if (!shared) return false;
+    // Each instance needs its own texture offset, otherwise every dog shows the same frame.
+    if (!this.ownClip || this.ownClip.shared !== shared) {
+      const texture = shared.texture.clone();
+      texture.needsUpdate = true;
+      this.ownClip = { shared, texture, meta: shared.meta };
+    }
+    this.animator.play(this.ownClip, { speed });
+    this.animator.update(dt);
+    const hgt = this.def.height;
+    this.sprite.scale.set(hgt * this.animator.aspect, hgt, 1);
+    return true;
   }
 
   spawn(s, lane) {
@@ -85,14 +105,21 @@ export class Obstacle {
       } else {
         this.sprite.material.color.setHex(0xffffff);
         this.s -= d.rushSpeed * dt;
-        bob = Math.abs(Math.sin(this.animTime * 14)) * 0.25;
-        rot = Math.sin(this.animTime * 14) * 0.08;
+        if (this.animate(dt, 1.6)) {
+          bob = Math.abs(Math.sin(this.animTime * 14)) * 0.06;
+        } else {
+          bob = Math.abs(Math.sin(this.animTime * 14)) * 0.25;
+          rot = Math.sin(this.animTime * 14) * 0.08;
+        }
       }
+      if (this.warnTimer > 0) this.animate(0, 1);
     } else if (d.behavior === 'wander') {
       this.s -= (d.approach || 0) * dt;
       this.lane = Math.max(-0.9, Math.min(0.9, this.baseLane + Math.sin(this.animTime * d.wanderFreq) * d.wanderAmp));
-      bob = Math.abs(Math.sin(this.animTime * 12)) * 0.12;
-      rot = Math.sin(this.animTime * 12) * 0.1;
+      if (!this.animate(dt)) {
+        bob = Math.abs(Math.sin(this.animTime * 12)) * 0.12;
+        rot = Math.sin(this.animTime * 12) * 0.1;
+      }
     }
 
     this.sprite.material.rotation = rot;

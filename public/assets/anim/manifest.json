@@ -1,5 +1,45 @@
 {
+  "cat_grumpy": [
+    "angry",
+    "chase",
+    "defeated",
+    "walk"
+  ],
+  "cow_rushing": [
+    "move"
+  ],
+  "daffy_duck": [
+    "caught",
+    "hit",
+    "jump",
+    "run",
+    "victory"
+  ],
+  "dog": [
+    "move"
+  ],
   "funny_chicken": [
+    "caught",
+    "hit",
+    "jump",
+    "run",
+    "victory"
+  ],
+  "rooster_king": [
+    "caught",
+    "hit",
+    "jump",
+    "run",
+    "victory"
+  ],
+  "speedy_chick": [
+    "caught",
+    "hit",
+    "jump",
+    "run",
+    "victory"
+  ],
+  "turbo_turkey": [
     "caught",
     "hit",
     "jump",

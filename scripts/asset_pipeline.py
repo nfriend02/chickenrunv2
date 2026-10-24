@@ -48,6 +48,21 @@ CLIP_OVERRIDES = {
     ("funny_chicken", "jump"): {"start": 0.8, "end": 3.2},
     ("funny_chicken", "hit"): {"start": 0.0, "end": 2.5},
     ("funny_chicken", "caught"): {"start": 0.0, "end": 2.8},
+    ("daffy_duck", "jump"): {"start": 0.5, "end": 3.5},
+    ("daffy_duck", "caught"): {"start": 0.5, "end": 2.8},
+    ("rooster_king", "jump"): {"start": 1.0, "end": 3.3},
+    ("rooster_king", "hit"): {"start": 1.2, "end": 3.0},
+    ("rooster_king", "caught"): {"start": 0.8, "end": 3.2},
+    ("speedy_chick", "jump"): {"start": 0.3, "end": 2.6},
+    ("speedy_chick", "caught"): {"start": 0.4, "end": 2.8},
+    ("turbo_turkey", "jump"): {"start": 1.0, "end": 3.4},
+    ("turbo_turkey", "hit"): {"start": 0.8, "end": 3.2},
+    ("turbo_turkey", "caught"): {"start": 0.6, "end": 2.8},
+    # Subjects that walk away from / toward the camera shrink or grow; normalize per-frame size.
+    ("cat_grumpy", "walk"): {"start": 0.0, "end": 2.2, "normalize": True},
+    ("cat_grumpy", "chase"): {"start": 0.0, "end": 1.3},
+    ("dog", "move"): {"start": 1.2, "end": None, "normalize": True},
+    ("cow_rushing", "move"): {"start": 1.2, "end": None, "normalize": True},
 }
 
 MAX_FRAMES = {"loop": 12, "once": 16}
@@ -212,12 +227,80 @@ def build_sheet(char, action, rgba_frames, loop):
     return meta
 
 
+def normalize_size(rgba_frames):
+    """Rescale each frame so the subject keeps a constant height, bottom-centred."""
+    boxes = [f.getchannel("A").point(lambda v: 255 if v > 40 else 0).getbbox() for f in rgba_frames]
+    heights = [b[3] - b[1] for b in boxes if b]
+    if not heights:
+        return rgba_frames
+    ref_h = max(heights)
+    crops = []
+    for f, b in zip(rgba_frames, boxes):
+        if not b:
+            crops.append(None)
+            continue
+        crop = f.crop(b)
+        s = ref_h / (b[3] - b[1])
+        crops.append(crop.resize((max(1, round(crop.width * s)), ref_h), Image.LANCZOS))
+    cw = max(c.width for c in crops if c) + 8
+    ch = ref_h + 8
+    out = []
+    for c in crops:
+        canvas = Image.new("RGBA", (cw, ch), (0, 0, 0, 0))
+        if c:
+            canvas.paste(c, ((cw - c.width) // 2, ch - ref_h - 4), c)
+        out.append(canvas)
+    return out
+
+
+def repair_faded(rgba_frames, drop):
+    """rembg sometimes returns a near-empty or ghosted frame; drop it (loops) or reuse a neighbour."""
+    solid = [int((np.asarray(f)[:, :, 3] > 200).sum()) for f in rgba_frames]
+    med = float(np.median(solid))
+    bad = {i for i, s in enumerate(solid) if s < 0.35 * med}
+    if not bad:
+        return rgba_frames
+    log(f"  repaired faded frames {sorted(bad)}")
+    if drop:
+        return [f for i, f in enumerate(rgba_frames) if i not in bad]
+    good = [i for i in range(len(rgba_frames)) if i not in bad]
+    return [f if i not in bad else rgba_frames[min(good, key=lambda g: (abs(g - i), g > i))]
+            for i, f in enumerate(rgba_frames)]
+
+
+def rgba_signature(rgba):
+    bg = Image.new("RGBA", rgba.size, (128, 128, 128, 255))
+    bg.alpha_composite(rgba)
+    return np.asarray(bg.convert("L").resize((64, 36)), dtype=np.float32) / 255.0
+
+
 def process_video(char, action):
     video = RAW_VIDEOS / char / f"{action}.mp4"
     override = CLIP_OVERRIDES.get((char, action), {})
     loop = action in LOOP_ACTIONS
     frames = extract_frames(video, override.get("start", 0.0), override.get("end"),
                             CACHE / "frames" / char / action)
+    if override.get("normalize"):
+        rgba = normalize_size([cut_watermark(rembg_remove(Image.open(f).convert("RGB")).convert("RGBA"))
+                               for f in frames])
+        if action in CYCLE_ACTIONS:
+            sigs = [rgba_signature(f) for f in rgba]
+            best = (1e9, 0, min(len(rgba), MAX_FRAMES["loop"]))
+            for a in range(0, max(1, len(sigs) // 3)):
+                for length in range(6, MAX_FRAMES["loop"] + 1):
+                    if a + length >= len(sigs):
+                        break
+                    diff = float(np.mean(np.abs(sigs[a] - sigs[a + length])))
+                    if diff < best[0]:
+                        best = (diff, a, length)
+            rgba = rgba[best[1]:best[1] + best[2]]
+            log(f"  normalized loop frames={len(rgba)} seam diff={best[0]:.4f}")
+        else:
+            rgba = sample_evenly(rgba, MAX_FRAMES["once"])
+        rgba = repair_faded(rgba, drop=action in CYCLE_ACTIONS)
+        meta = build_sheet(char, action, rgba, loop)
+        log(f"  -> anim/{char}/{action}.webp {meta['frameWidth']}x{meta['frameHeight']} x{meta['frameCount']}")
+        return
     if action in CYCLE_ACTIONS:
         frames, diff = pick_loop(frames, MAX_FRAMES["loop"])
         log(f"  loop frames={len(frames)} seam diff={diff:.4f}")
@@ -225,6 +308,7 @@ def process_video(char, action):
         frames = sample_evenly(frames, MAX_FRAMES["once"])
         log(f"  frames={len(frames)}")
     rgba = [cut_watermark(rembg_remove(Image.open(f).convert("RGB")).convert("RGBA")) for f in frames]
+    rgba = repair_faded(rgba, drop=action in CYCLE_ACTIONS)
     meta = build_sheet(char, action, rgba, loop)
     log(f"  -> anim/{char}/{action}.webp {meta['frameWidth']}x{meta['frameHeight']} x{meta['frameCount']}")
 

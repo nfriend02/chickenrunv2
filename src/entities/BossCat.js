@@ -169,6 +169,7 @@ export class BossCat {
 
   update(dt, player, anchorS) {
     if (!this.active) return;
+    this.frameDt = dt;
     this.animTime += dt;
     this.stateTimer += dt;
     if (this.hopTimer > 0) this.hopTimer -= dt;
@@ -329,7 +330,7 @@ export class BossCat {
     const clip = clipName ? this.renderer.anims.get('cat_grumpy', clipName) : null;
     if (clip && this.stageId !== 2) {
       this.animator.play(clip);
-      this.animator.update(1 / 60);
+      this.animator.update(this.frameDt || 1 / 60);
       this.sprite.userData.aspect = this.animator.aspect;
       const hgt = this.sprite.userData.height;
       this.sprite.scale.set(hgt * this.sprite.userData.aspect, hgt, 1);
