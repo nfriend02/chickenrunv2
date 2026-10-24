@@ -1,0 +1,11 @@
+{
+  "frameCount": 7,
+  "fps": 12,
+  "frameWidth": 254,
+  "frameHeight": 256,
+  "loop": true,
+  "pivot": {
+    "x": 0.5269,
+    "y": 1.0
+  }
+}

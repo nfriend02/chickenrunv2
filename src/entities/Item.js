@@ -1,90 +1,65 @@
-import { soundSynth } from '../audio/SoundSynth.js';
-
 export class Item {
   constructor(renderer, itemConfig) {
     this.renderer = renderer;
     this.config = itemConfig;
 
-    // Track Coordinates
-    this.trackPos = 0.0; // 0.0 = Vanishing Point (Top-Right)
-    this.lanePos = 0.0;  // Lateral lane across track
+    this.s = 0;
+    this.lane = 0;
     this.active = false;
     this.animTime = Math.random() * 10;
 
-    // 2x Sized Mesh (Width 2.4, Height 2.4)
-    this.mesh = this.renderer.createEntityMesh(itemConfig.image, itemConfig.color, 1.2, 1.2);
-    this.mesh.visible = false;
-    this.renderer.scene.add(this.mesh);
+    const height = itemConfig.power ? 0.85 : (itemConfig.id === 'rice' ? 0.42 : 0.6);
+    this.sprite = renderer.createBillboard(itemConfig.image, height, 0xffffff);
   }
 
-  spawn(lanePos) {
-    this.trackPos = 0.0; // Spawns far away at Top-Right vanishing point
-    this.lanePos = lanePos;
+  spawn(s, lane) {
+    this.s = s;
+    this.lane = Math.max(-0.85, Math.min(0.85, lane));
     this.active = true;
-    this.mesh.visible = true;
-
-    const initialPos = this.renderer.getTrackWorldPos(this.trackPos, this.lanePos, 0.4);
-    this.mesh.position.copy(initialPos);
-    const pScale = this.renderer.getPerspectiveScale(this.trackPos);
-    this.mesh.scale.set(pScale, pScale, pScale);
+    this.sprite.visible = true;
+    this.place();
   }
 
   deactivate() {
     this.active = false;
-    this.mesh.visible = false;
-    this.mesh.position.set(0, -100, 0);
+    this.sprite.visible = false;
   }
 
-  update(scrollSpeed, dt, player) {
-    if (!this.active) return;
+  place() {
+    const bob = 0.35 + Math.sin(this.animTime * 5.0) * 0.12;
+    this.renderer.path.point(this.s, this.lane, bob, this.sprite.position);
+  }
 
+  update(dt, anchorS, player) {
+    if (!this.active) return;
     this.animTime += dt;
 
-    // Move along track from Top-Right (0) down towards Bottom-Left (1)
-    const trackSpeed = scrollSpeed * 0.024;
-    this.trackPos += trackSpeed * dt;
-
-    // Magnet suction pull logic
     if (player && (player.hasMagnet || player.isFever)) {
-      const dTrack = player.trackPos - this.trackPos;
-      const dLane = player.lanePos - this.lanePos;
-      const dist = Math.sqrt(dTrack * dTrack + dLane * dLane);
-
-      if (dist < 0.45) {
-        const pullSpeed = 2.4;
-        this.trackPos += (dTrack / dist) * pullSpeed * dt;
-        this.lanePos += (dLane / dist) * pullSpeed * dt;
+      const halfW = this.renderer.path.halfWidth;
+      const ds = player.s - this.s;
+      const dx = (player.lane - this.lane) * halfW;
+      const dist = Math.sqrt(ds * ds + dx * dx);
+      if (dist < player.magnetRadius && dist > 0.01) {
+        const pull = 14 * dt;
+        this.s += (ds / dist) * Math.min(pull, dist);
+        this.lane += ((dx / dist) * Math.min(pull, dist)) / halfW;
       }
     }
 
-    // Dynamic 3D bobbing and spinning collectible animation
-    const bob = Math.sin(this.animTime * 5.0) * 0.22;
-    const worldPos = this.renderer.getTrackWorldPos(this.trackPos, this.lanePos, 0.45 + bob);
-    this.mesh.position.copy(worldPos);
+    this.sprite.material.rotation = Math.sin(this.animTime * 3.0) * 0.15;
+    this.place();
 
-    // Growing perspective scale as it gets closer along the road
-    const pScale = this.renderer.getPerspectiveScale(this.trackPos);
-    this.mesh.scale.set(pScale, pScale, pScale);
-
-    // Real 3D Motion: continuous spinning around Y axis + rhythmic 3D tilt
-    this.mesh.rotation.y += 3.8 * dt;
-    this.mesh.rotation.x = Math.sin(this.animTime * 3.5) * 0.18;
-    this.mesh.rotation.z = Math.sin(this.animTime * 2.0) * 0.10;
-
-    // Despawn once it passes screen exit at bottom-left
-    if (this.trackPos > 1.1) {
+    if (this.s < anchorS - 6) {
       this.deactivate();
     }
   }
 
   checkCollision(player) {
     if (!this.active) return false;
-
-    const dTrack = Math.abs(this.trackPos - player.trackPos);
-    const dLane = Math.abs(this.lanePos - player.lanePos);
-
-    // Collision check based on track distance and lane
-    if (dTrack < 0.075 && dLane < 0.38) {
+    const ds = Math.abs(this.s - player.s);
+    const dx = Math.abs(this.lane - player.lane) * this.renderer.path.halfWidth;
+    if (ds < 0.75 && dx < 0.8 && player.y < 2.2) {
+      this.renderer.emitFeathers(this.sprite.position, 6, this.config.color);
       this.deactivate();
       return true;
     }

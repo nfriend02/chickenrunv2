@@ -1,0 +1,42 @@
+{
+  "sky": "sky.webp",
+  "ground": "ground.webp",
+  "grass": "grass.webp",
+  "groundAspect": 0.4578,
+  "roadU0": 0.3423,
+  "roadU1": 0.6613,
+  "fogColor": "#d3bc94",
+  "perspectiveWarning": false,
+  "props": [
+    {
+      "name": "apple_tree",
+      "file": "props/apple_tree.webp",
+      "aspect": 0.901
+    },
+    {
+      "name": "barn",
+      "file": "props/barn.webp",
+      "aspect": 0.8763
+    },
+    {
+      "name": "barrels",
+      "file": "props/barrels.webp",
+      "aspect": 1.3636
+    },
+    {
+      "name": "duck_pond",
+      "file": "props/duck_pond.webp",
+      "aspect": 1.5835
+    },
+    {
+      "name": "fence_section",
+      "file": "props/fence_section.webp",
+      "aspect": 2.4774
+    },
+    {
+      "name": "hay_stack",
+      "file": "props/hay_stack.webp",
+      "aspect": 1.1458
+    }
+  ]
+}

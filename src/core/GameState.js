@@ -103,7 +103,23 @@ export const Stages = [
     groundColor: 0x8D6E63,
     bgImage: '/assets/images/backgrounds/stage01.png',
     theme: '따스한 햇살 & 자갈길',
-    obstacles: ['haystack', 'fence', 'dog', 'duck'],
+    obstacles: ['haystack', 'fence', 'dog', 'duck', 'pond'],
+    obstacleWeights: { haystack: 3, fence: 2, dog: 2, duck: 2, pond: 1 },
+    world: {
+      dir: '/assets/stages/stage01',
+      curviness: 1.0,
+      hilliness: 0.8,
+      roadHalfWidth: 2.2,
+      // Billboard height and lateral offset from road center, in world units.
+      props: {
+        apple_tree: { height: 5.2, minOffset: 5.0, maxOffset: 13, weight: 3 },
+        fence_section: { height: 1.2, minOffset: 3.4, maxOffset: 4.0, weight: 3 },
+        hay_stack: { height: 1.7, minOffset: 3.8, maxOffset: 8, weight: 2 },
+        barrels: { height: 1.4, minOffset: 3.6, maxOffset: 7, weight: 1.5 },
+        barn: { height: 6.5, minOffset: 9, maxOffset: 15, weight: 0.6 },
+        duck_pond: { height: 1.8, minOffset: 5.5, maxOffset: 11, weight: 0.8 }
+      }
+    },
     bossEvent: '고양이가 건초더미에 파묻힘',
     bossImage: '/assets/images/npcs/cat_grumpy.png'
   },
@@ -118,6 +134,7 @@ export const Stages = [
     skyColor: 0x64B5F6,
     groundColor: 0x4E342E,
     bgImage: '/assets/images/backgrounds/stage02.png',
+    world: { dir: '/assets/stages/stage02' },
     theme: '탁 트인 푸른 목장',
     obstacles: ['fence', 'cow_rushing', 'rock'],
     bossEvent: '고양이 트랙터가 울타리에 걸림',
@@ -134,6 +151,7 @@ export const Stages = [
     skyColor: 0x212121,
     groundColor: 0xD7CCC8,
     bgImage: '/assets/images/backgrounds/stage03.png',
+    world: { dir: '/assets/stages/stage03' },
     theme: '레트로 장판 & 마루',
     obstacles: ['door_sill', 'tea_spill', 'pestle'],
     bossEvent: '고양이가 비단이불에 뒹굴며 클리어',
@@ -150,6 +168,7 @@ export const Stages = [
     skyColor: 0xE65100,
     groundColor: 0x5D4037,
     bgImage: '/assets/images/backgrounds/stage04.png',
+    world: { dir: '/assets/stages/stage04' },
     theme: '석양 산길 & 벼랑',
     obstacles: ['rock', 'old_car', 'cliff_hole'],
     bossEvent: '흔들다리가 끊어지며 고양이 나무에 걸림',
@@ -166,6 +185,7 @@ export const Stages = [
     skyColor: 0x1E88E5,
     groundColor: 0xBDBDBD,
     bgImage: '/assets/images/backgrounds/stage05.png',
+    world: { dir: '/assets/stages/stage05' },
     theme: '와글와글 뻥튀기 시장',
     obstacles: ['apple_box', 'cart', 'market_crowd'],
     bossEvent: '뻥튀기 기계 폭발로 고양이들 하늘로 날아감!',

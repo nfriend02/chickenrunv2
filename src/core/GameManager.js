@@ -30,6 +30,11 @@ export class GameManager {
 
     // Stage Manager
     this.stageManager = new StageManager(this.renderer, this.scoreManager);
+    this.stageManager.loadStage(0);
+
+    // Camera anchor distance along the road and current scroll speed (world units / s)
+    this.distance = 0;
+    this.scrollSpeed = 0;
 
     // Input Manager
     this.inputManager = new InputManager(this.player);
@@ -60,8 +65,13 @@ export class GameManager {
     };
 
     this.stageManager.onBossChaseStart = (stageId) => {
-      this.uiManager.showBossChase(`🚨 늙은 심술 고양이 추격 시작!! 🚨`);
       this.bossCat.startChase(stageId);
+      const hayFinale = this.bossCat.usesHayFinale;
+      this.uiManager.showBossChase(
+        hayFinale ? '🚨 늙은 고양이가 헛간 문을 부수고 추격 시작!! 🚨' : '🚨 늙은 심술 고양이 추격 시작!! 🚨',
+        this.bossCat.targetEvades,
+        hayFinale ? '🌾 건초더미 회피:' : '⚡ 고양이 공격 회피:'
+      );
     };
 
     this.bossCat.onAttackWarning = (msg) => {
@@ -151,6 +161,8 @@ export class GameManager {
 
     this.state = GameStateEnum.PLAYING;
     const lives = saveSystem.getFeatherLives();
+    this.distance = 0;
+    this.scrollSpeed = 0;
     this.player.reset(lives);
     this.scoreManager.reset();
     this.bossCat.reset();
@@ -224,14 +236,18 @@ export class GameManager {
     saveSystem.unlockNextStage(currentStageId);
 
     // Displays "미션 성공" with radiating lightning, then after 3s reveals "스코어 보기" button
-    this.uiManager.showMissionResult(true, 4, 4, () => {
+    const target = this.bossCat.targetEvades;
+    const texts = this.bossCat.usesHayFinale
+      ? { success: `건초더미를 ${target}번 피했더니 늙은 고양이가 건초더미에 처박혔습니다!` }
+      : {};
+    this.uiManager.showMissionResult(true, target, target, () => {
       this.uiManager.showResultModal(
         true,
         this.scoreManager.score,
         this.scoreManager.maxCombo,
         this.player.feathers
       );
-    });
+    }, texts);
   }
 
   onMissionFailed(evadeCount = 0) {
@@ -243,7 +259,8 @@ export class GameManager {
     this.renderer.setGloomyDefeatFX(true);
 
     // Displays "미션 실패" with gloomy atmosphere, then after 3s reveals "스코어 보기" button
-    this.uiManager.showMissionResult(false, evadeCount, 4, () => {
+    const done = this.bossCat.usesHayFinale ? this.bossCat.haysAvoided : evadeCount;
+    this.uiManager.showMissionResult(false, done, this.bossCat.targetEvades, () => {
       this.uiManager.showResultModal(
         false,
         this.scoreManager.score,
@@ -269,35 +286,39 @@ export class GameManager {
     this.animTime += dt;
 
     if (this.state === GameStateEnum.PLAYING) {
-      // 1. Update Input
       this.inputManager.update(dt);
 
-      // 2. Update Player
-      this.player.update(dt);
+      const target = this.stageManager.getRunSpeed() * this.player.speedFactor * this.bossCat.worldSpeedScale;
+      this.scrollSpeed += (target - this.scrollSpeed) * Math.min(1, dt * 3);
+      this.distance += this.scrollSpeed * dt;
+
+      this.player.update(dt, this.distance);
       this.uiManager.updateFeathers(this.player.feathers, this.player.maxFeathers);
 
-      // Check Game Over
       if (this.player.feathers <= 0) {
         this.onGameOver();
         return;
       }
 
-      // 3. Update Stage Manager (Obstacles, Items, Parallax)
-      this.stageManager.update(dt, this.player);
+      this.stageManager.update(dt, this.player, this.distance);
 
-      // 4. Update Boss Cat
       if (this.bossCat.active) {
-        this.bossCat.update(dt, this.player);
+        this.bossCat.update(dt, this.player, this.distance);
       }
 
-      // 5. Update Score Manager (combo timer)
       this.scoreManager.update(dt);
-    } else if (this.state === GameStateEnum.STAGE_CLEAR || this.state === GameStateEnum.GAME_OVER) {
-      // Smoothly animate hero moving to center on mission complete/fail
-      this.player.update(dt);
+    } else {
+      // Title / pause / results: ease the scroll to an idle drift (or a stop after a stage ends)
+      const ended = this.state === GameStateEnum.STAGE_CLEAR || this.state === GameStateEnum.GAME_OVER;
+      const idle = this.state === GameStateEnum.PAUSED || ended ? 0 : 3.0;
+      this.scrollSpeed += (idle - this.scrollSpeed) * Math.min(1, dt * 2);
+      this.distance += this.scrollSpeed * dt;
+      if (this.state !== GameStateEnum.PAUSED) this.player.update(dt, this.distance);
+      if (ended && this.bossCat.active) this.bossCat.update(dt, this.player, this.distance);
     }
 
-    // Always update visual animations & render
+    this.renderer.setAnchor(this.distance);
+    this.renderer.updateCamera(this.player.lane, dt);
     this.renderer.updatePlayerVisuals(this.player, this.animTime, dt);
     this.renderer.updateParticles(dt);
     this.renderer.render(dt);

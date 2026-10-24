@@ -1,0 +1,11 @@
+{
+  "sky": "sky.webp",
+  "ground": "ground.webp",
+  "grass": "grass.webp",
+  "groundAspect": 0.4578,
+  "roadU0": 0.3,
+  "roadU1": 0.7,
+  "fogColor": "#865831",
+  "perspectiveWarning": false,
+  "props": []
+}

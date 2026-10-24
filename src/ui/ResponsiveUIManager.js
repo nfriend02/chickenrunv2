@@ -420,24 +420,29 @@ export class ResponsiveUIManager {
     }, 2500);
   }
 
-  showBossChase(text) {
+  showBossChase(text, target = 4, title = '⚡ 고양이 공격 회피:') {
     if (!this.bossBanner) return;
     if (this.bossBannerText) this.bossBannerText.textContent = text;
     this.bossBanner.classList.remove('hidden');
 
-    this.showCatEvadeHUD(true);
+    const titleEl = this.catEvadeHud && this.catEvadeHud.querySelector('.evade-title');
+    if (titleEl) titleEl.textContent = title;
+    this.showCatEvadeHUD(true, target);
 
     setTimeout(() => {
       this.bossBanner.classList.add('hidden');
     }, 3500);
   }
 
-  showCatEvadeHUD(show = true) {
+  showCatEvadeHUD(show = true, target = 4) {
     if (!this.catEvadeHud) return;
     if (show) {
       this.catEvadeHud.classList.remove('hidden');
       this.catEvadeHud.style.display = 'flex';
-      this.updateEvadeCount(0, 4);
+      if (this.evadeBadges) {
+        this.evadeBadges.forEach((star, idx) => { star.style.display = idx < target ? '' : 'none'; });
+      }
+      this.updateEvadeCount(0, target);
     } else {
       this.catEvadeHud.classList.add('hidden');
       this.catEvadeHud.style.display = 'none';
@@ -483,7 +488,7 @@ export class ResponsiveUIManager {
    * Displays "미션 성공" with lightning or "미션 실패" with gloomy atmosphere,
    * and exactly 3 seconds later reveals the "스코어 보기" button at the bottom center.
    */
-  showMissionResult(isSuccess, evades, target = 4, onShowScoreboard) {
+  showMissionResult(isSuccess, evades, target = 4, onShowScoreboard, texts = {}) {
     // Hide active gameplay controls & HUD
     if (this.hud) this.hud.classList.add('hidden');
     if (this.controlsContainer) this.controlsContainer.classList.add('hidden');
@@ -504,13 +509,13 @@ export class ResponsiveUIManager {
 
     if (this.missionSubtitle) {
       this.missionSubtitle.textContent = isSuccess
-        ? '늙은 고양이의 공격을 4회 완벽히 회피했습니다!'
-        : '늙은 고양이의 공격에 쓰러졌습니다...';
+        ? (texts.success || `늙은 고양이의 공격을 ${target}회 완벽히 회피했습니다!`)
+        : (texts.fail || '늙은 고양이의 공격에 쓰러졌습니다...');
     }
 
     if (this.missionStars) {
       this.missionStars.textContent = isSuccess
-        ? '🌟🌟🌟🌟'
+        ? '🌟'.repeat(target)
         : `회피 성공: ${evades} / ${target}`;
     }
 

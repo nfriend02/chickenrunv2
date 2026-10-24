@@ -1,117 +1,210 @@
 import { soundSynth } from '../audio/SoundSynth.js';
+import { Obstacle } from './Obstacle.js';
+import { SpriteAnimator } from '../animation/SpriteAnimator.js';
 
+const STALK_OFFSET = -4.2;
+// While stalking the cat keeps to the lane beside the player so the hero stays visible.
+const STALK_SIDE = 0.8;
+const LUNGE_SPEED = 10;
+const RETREAT_SPEED = 6;
+const HAY_TARGET = 3;
+const HAY_SPAWN_AHEAD = 24;
+const HAY_LANES = [-0.4, 0.45, 0.0];
+
+const CLIP_FOR_STATE = {
+  ENTERING: 'walk',
+  RETREAT: 'walk',
+  STALKING: 'chase',
+  LUNGING: 'chase',
+  BURY_RUN: 'chase',
+  CHARGING: 'angry',
+  EVADED: 'angry',
+  BURIED: 'defeated',
+  DEFEATED: 'defeated'
+};
+
+/**
+ * The old grumpy cat's finale chase. The cat lives at a distance offset (relS) from the player:
+ * negative = behind the player (lower on screen), positive = ahead.
+ * Stage 1 follows the GDD finale: dodge 3 haystacks in a row and the cat gets buried in the last one.
+ * Other stages use the generic "dodge 4 lunges" finale until their own gimmicks are built.
+ */
 export class BossCat {
   constructor(renderer) {
     this.renderer = renderer;
     this.active = false;
     this.stageId = 1;
-    this.trackPos = 1.15; // Starts at BOTTOM of the screen
-    this.lanePos = 0.0;
-    this.state = 'IDLE'; // IDLE, ENTERING, STALKING, CHARGING, LUNGING, EVADED, RETREAT, DEFEATED
+    this.s = 0;
+    this.relS = -9;
+    this.lane = 0;
+    this.h = 0;
+    this.state = 'IDLE';
     this.animTime = 0;
     this.stateTimer = 0;
     this.evadeCount = 0;
     this.targetEvades = 4;
     this.hasResolvedCurrentLunge = false;
 
-    // Callbacks
+    this.hays = [];
+    this.haysAvoided = 0;
+    this.hayIndex = 0;
+    this.buryHay = null;
+    this.hopTimer = 0;
+
     this.onAttackWarning = null;
     this.onEvaded = null;
     this.onMissionSuccess = null;
     this.onMissionFailed = null;
 
-    this.mesh = null;
-    this.setupMesh();
+    this.sprite = renderer.createBillboard('/assets/images/npcs/cat_grumpy.png', 1.9);
+    this.staticTexture = this.sprite.material.map;
+    this.animator = new SpriteAnimator(this.sprite);
+
+    for (let i = 0; i < HAY_TARGET + 2; i++) {
+      this.hays.push(new Obstacle(renderer, 'haystack'));
+    }
   }
 
-  setupMesh() {
-    // 2x Sized Boss Mesh (Width 5.2, Height 5.2)
-    this.mesh = this.renderer.createEntityMesh('/assets/images/npcs/cat_grumpy.png', 0xFF5722, 2.6, 2.6);
-    this.mesh.visible = false;
-    this.renderer.scene.add(this.mesh);
+  get usesHayFinale() {
+    return this.stageId === 1;
+  }
+
+  /** World scroll multiplier: slow motion while the cat crashes into the haystack. */
+  get worldSpeedScale() {
+    return this.state === 'BURY_RUN' || this.state === 'BURIED' ? 0.3 : 1.0;
   }
 
   startChase(stageId) {
     this.stageId = stageId;
     this.active = true;
     this.state = 'ENTERING';
-    this.trackPos = 1.15; // Emerges from BOTTOM (하단)
-    this.lanePos = 0.0;
+    this.relS = -9;
+    this.lane = 0;
+    this.h = 0;
     this.animTime = 0;
     this.stateTimer = 0;
     this.evadeCount = 0;
+    this.haysAvoided = 0;
+    this.hayIndex = 0;
+    this.buryHay = null;
+    this.successSent = false;
     this.hasResolvedCurrentLunge = false;
+    this.targetEvades = this.usesHayFinale ? HAY_TARGET : 4;
+    this.hays.forEach(h => h.deactivate());
 
-    let imgPath = '/assets/images/npcs/cat_grumpy.png';
-    if (stageId === 2) imgPath = '/assets/images/npcs/cat_tractor.png';
-
-    const texture = this.renderer.loadTexture(imgPath);
-    if (this.mesh && this.mesh.children[0]) {
-      this.mesh.children[0].material.map = texture;
-      this.mesh.children[0].material.needsUpdate = true;
-    }
-
-    this.mesh.visible = true;
+    const img = stageId === 2 ? '/assets/images/npcs/cat_tractor.png' : '/assets/images/npcs/cat_grumpy.png';
+    this.renderer.setBillboardTexture(this.sprite, img);
+    this.staticTexture = this.sprite.material.map;
+    this.animator.stop();
+    this.sprite.material.color.setHex(0xffffff);
+    this.sprite.material.rotation = 0;
+    this.sprite.visible = true;
     soundSynth.playBossChase();
+
+    if (this.onAttackWarning) {
+      this.onAttackWarning(this.usesHayFinale
+        ? '🚪💥 늙은 고양이가 헛간 문을 부수고 나왔다! 건초더미 3개를 연속으로 피하세요!'
+        : `🚨 늙은 고양이 출현! (회피 목표: ${this.targetEvades}회)`);
+    }
   }
 
-  update(dt, player) {
+  sideLane(player) {
+    const side = player.lane >= 0 ? -STALK_SIDE : STALK_SIDE;
+    return Math.max(-0.95, Math.min(0.95, player.lane + side));
+  }
+
+  setState(state) {
+    this.state = state;
+    this.stateTimer = 0;
+  }
+
+  // ------------------------------------------------------------ finale
+
+  spawnNextHay(player) {
+    const hay = this.hays.find(h => !h.active);
+    if (!hay) return;
+    hay.spawn(player.s + HAY_SPAWN_AHEAD, HAY_LANES[this.hayIndex % HAY_LANES.length]);
+    hay.isFinale = true;
+    this.hayIndex++;
+  }
+
+  updateHays(dt, player, anchorS) {
+    let pending = false;
+    for (const hay of this.hays) {
+      if (!hay.active) continue;
+      if (hay !== this.buryHay) hay.update(dt, anchorS);
+      if (!hay.active || !hay.isFinale) continue;
+
+      if (!hay.passed) {
+        pending = true;
+        const res = hay.checkCollision(player, this.renderer.path.halfWidth);
+        if (res === 'DAMAGE') {
+          player.takeDamage();
+        }
+        if (hay.s < player.s - 1.0) {
+          hay.passed = true;
+          if (!hay.wasHit) {
+            this.haysAvoided++;
+            soundSynth.playEvadeSuccess();
+            this.renderer.emitFeathers(this.renderer.path.point(player.s, player.lane, 0.5), 16, 0xffd700);
+            if (this.onEvaded) this.onEvaded(this.haysAvoided, HAY_TARGET);
+            if (this.haysAvoided >= HAY_TARGET) {
+              this.buryHay = hay;
+              this.setState('BURY_RUN');
+            }
+          }
+        }
+      }
+
+      if (hay !== this.buryHay && Math.abs(hay.s - this.s) < 0.6 && this.hopTimer <= 0) {
+        this.hopTimer = 0.5;
+      }
+    }
+    if (!pending && this.haysAvoided < HAY_TARGET && this.state !== 'ENTERING') {
+      this.spawnNextHay(player);
+    }
+  }
+
+  // ------------------------------------------------------------- update
+
+  update(dt, player, anchorS) {
     if (!this.active) return;
     this.animTime += dt;
     this.stateTimer += dt;
+    if (this.hopTimer > 0) this.hopTimer -= dt;
 
-    const roadAngle = (this.renderer.getRoadAngle ? this.renderer.getRoadAngle(this.trackPos) : 0);
-    const pScale = this.renderer.getPerspectiveScale(this.trackPos);
+    if (this.usesHayFinale && this.state !== 'BURIED') {
+      this.updateHays(dt, player, anchorS);
+    }
 
-    // --- State Machine ---
     switch (this.state) {
       case 'ENTERING': {
-        // Rises up from screen BOTTOM into stalking range
-        this.trackPos -= 0.35 * dt;
-        this.lanePos += (player.lanePos * 0.7 - this.lanePos) * 2.0 * dt;
-
-        if (this.trackPos <= 0.94) {
-          this.trackPos = 0.94;
-          this.state = 'STALKING';
-          this.stateTimer = 0;
-          if (this.onAttackWarning) {
-            this.onAttackWarning(`🚨 늙은 고양이 하단 출현! (회피 목표: 4회)`);
-          }
+        this.relS += (STALK_OFFSET - this.relS) * 2.2 * dt;
+        this.lane += (this.sideLane(player) - this.lane) * 2.0 * dt;
+        if (this.stateTimer < 0.6 && Math.random() < 0.5) {
+          this.renderer.emitFeathers(this.sprite.position, 4, 0x8d5524);
         }
+        if (Math.abs(this.relS - STALK_OFFSET) < 0.15) this.setState('STALKING');
         break;
       }
 
       case 'STALKING': {
-        // Stalks directly beneath player along the road for 2.2 seconds
-        const targetLane = Math.max(-0.8, Math.min(0.8, player.lanePos * 0.9));
-        this.lanePos += (targetLane - this.lanePos) * 2.8 * dt;
-        this.trackPos = 0.94 + Math.sin(this.animTime * 6) * 0.02;
-
-        if (this.stateTimer >= 2.0) {
-          this.state = 'CHARGING';
-          this.stateTimer = 0;
+        this.lane += (this.sideLane(player) - this.lane) * 2.8 * dt;
+        this.relS = STALK_OFFSET + Math.sin(this.animTime * 6) * 0.15;
+        if (this.stateTimer >= (this.usesHayFinale ? 2.6 : 2.0)) {
+          this.setState('CHARGING');
           soundSynth.playWarning();
-          if (this.onAttackWarning) {
-            this.onAttackWarning(`⚠️ 고양이 하단 급습 임박! JUMP 버튼으로 회피하세요! 🪶`);
-          }
+          if (this.onAttackWarning) this.onAttackWarning('⚠️ 고양이 급습 임박! JUMP 버튼으로 회피하세요! 🪶');
         }
         break;
       }
 
       case 'CHARGING': {
-        // Crouches low, eyes glow red, prepares upward lunge
-        this.lanePos += (player.lanePos - this.lanePos) * 3.5 * dt;
-        this.trackPos = 0.96;
-
-        // Visual crouch rumble
-        if (this.mesh) {
-          this.mesh.rotation.x = 0.45;
-          this.mesh.rotation.y = Math.sin(this.animTime * 30) * 0.12;
-        }
-
+        this.lane += (player.lane - this.lane) * 3.5 * dt;
+        this.sprite.material.color.setHex(Math.sin(this.animTime * 30) > 0 ? 0xffffff : 0xff8a80);
         if (this.stateTimer >= 0.85) {
-          this.state = 'LUNGING';
-          this.stateTimer = 0;
+          this.sprite.material.color.setHex(0xffffff);
+          this.setState('LUNGING');
           this.hasResolvedCurrentLunge = false;
           soundSynth.playBossChase();
         }
@@ -119,125 +212,132 @@ export class BossCat {
       }
 
       case 'LUNGING': {
-        // Surges rapidly UPWARD from bottom towards top (overtaking player)
-        this.trackPos -= 1.85 * dt; // Moving upward towards player
-
-        // Check evade window right as cat reaches the protagonist
-        const dTrack = Math.abs(this.trackPos - player.trackPos);
-        const dLane = Math.abs(this.lanePos - player.lanePos);
-
-        if (!this.hasResolvedCurrentLunge && dTrack < 0.11 && dLane < 0.65) {
+        this.relS += LUNGE_SPEED * dt;
+        const ds = Math.abs(this.relS);
+        const dLane = Math.abs(this.lane - player.lane);
+        if (!this.hasResolvedCurrentLunge && ds < 0.7 && dLane < 0.55) {
           this.hasResolvedCurrentLunge = true;
-
-          // EVADE CHECK: Player is jumping (airborne / in jump)
-          if (player.isJumping || player.y > 0.45) {
-            // --- SUCCESSFUL EVADE! ---
-            this.evadeCount++;
+          if (player.isJumping || player.y > 0.9) {
             soundSynth.playEvadeSuccess();
-
-            const worldPos = this.renderer.getTrackWorldPos(player.trackPos, player.lanePos, player.y);
-            this.renderer.emitFeathers(worldPos, 22, 0x00FFFF);
-            this.renderer.emitFeathers(worldPos, 14, 0xFFD700);
-
-            if (this.onEvaded) {
-              this.onEvaded(this.evadeCount, this.targetEvades);
+            const pos = this.renderer.path.point(player.s, player.lane, player.worldHeight);
+            this.renderer.emitFeathers(pos, 20, 0x00ffff);
+            if (!this.usesHayFinale) {
+              this.evadeCount++;
+              if (this.onEvaded) this.onEvaded(this.evadeCount, this.targetEvades);
             }
-
-            // Cat misses, overshoots upward
-            this.state = 'EVADED';
-            this.stateTimer = 0;
+            this.setState('EVADED');
           } else {
-            // --- FAILED TO EVADE: PLAYER HIT! ---
-            const damaged = player.takeDamage();
-            soundSynth.playHit();
-            const worldPos = this.renderer.getTrackWorldPos(this.trackPos, this.lanePos, 0.5);
-            this.renderer.emitFeathers(worldPos, 25, 0xE53935);
-
+            player.takeDamage();
+            this.renderer.emitFeathers(this.sprite.position, 22, 0xe53935);
             if (player.feathers <= 0) {
-              this.state = 'DEFEATED';
-              if (this.onMissionFailed) {
-                this.onMissionFailed(this.evadeCount);
-              }
+              this.setState('IDLE');
+              if (this.onMissionFailed) this.onMissionFailed(this.evadeCount);
               return;
-            } else {
-              this.state = 'RETREAT';
-              this.stateTimer = 0;
             }
+            this.setState('RETREAT');
           }
         }
-
-        // Overshot without collision
-        if (this.trackPos < 0.35) {
-          this.state = 'RETREAT';
-          this.stateTimer = 0;
-        }
+        if (this.relS > 4.0) this.setState('RETREAT');
         break;
       }
 
       case 'EVADED': {
-        // Cat overshoots upward, spins around in confusion
-        this.trackPos += (0.40 - this.trackPos) * 2.0 * dt;
-        if (this.mesh) {
-          this.mesh.rotation.y += 12.0 * dt;
-          this.mesh.rotation.z += 8.0 * dt;
-        }
-
+        this.relS += (4.5 - this.relS) * 2.0 * dt;
+        this.sprite.material.rotation += 9.0 * dt;
         if (this.stateTimer >= 0.7) {
-          // Check if 4 evades achieved!
-          if (this.evadeCount >= this.targetEvades) {
-            this.state = 'DEFEATED';
-            soundSynth.playThunderLightning();
-            const worldPos = this.renderer.getTrackWorldPos(this.trackPos, this.lanePos, 0.5);
-            this.renderer.emitFeathers(worldPos, 35, 0xFFEB3B);
-
-            if (this.onMissionSuccess) {
-              this.onMissionSuccess();
-            }
+          this.sprite.material.rotation = 0;
+          if (!this.usesHayFinale && this.evadeCount >= this.targetEvades) {
+            this.finishDefeated();
             return;
-          } else {
-            this.state = 'RETREAT';
-            this.stateTimer = 0;
           }
+          this.setState('RETREAT');
         }
         break;
       }
 
       case 'RETREAT': {
-        // Cat slides back down to BOTTOM of the screen to prepare next attack
-        this.trackPos += 0.95 * dt;
-        if (this.trackPos >= 1.05) {
-          this.trackPos = 0.96;
-          this.state = 'STALKING';
-          this.stateTimer = 0;
+        this.relS -= RETREAT_SPEED * dt;
+        if (this.relS <= STALK_OFFSET) {
+          this.relS = STALK_OFFSET;
+          this.setState('STALKING');
           this.hasResolvedCurrentLunge = false;
         }
         break;
       }
 
-      case 'DEFEATED': {
-        // Cat knocked out of bounds
-        this.trackPos += 1.5 * dt;
-        if (this.mesh) {
-          this.mesh.rotation.z += 10 * dt;
-          this.mesh.position.y -= 8 * dt;
-        }
-        if (this.trackPos > 1.4) {
-          this.mesh.visible = false;
+      case 'BURY_RUN': {
+        // Cat keeps charging straight at the last haystack, which is now behind the player.
+        const hay = this.buryHay;
+        this.lane += (hay.lane - this.lane) * 4.0 * dt;
+        this.s = Math.min(this.s + (player.speedFactor * 2 + 3) * dt, hay.s);
+        this.relS = this.s - player.s;
+        if (hay.s - this.s < 0.35) {
+          this.setState('BURIED');
+          soundSynth.playExplosion();
+          soundSynth.playThunderLightning();
+          this.renderer.emitFeathers(hay.sprite.position, 40, 0xe6c280);
+          this.renderer.emitFeathers(hay.sprite.position, 20, 0xffd54f);
+          if (this.onAttackWarning) this.onAttackWarning('🌾 고양이가 건초더미에 푹 파묻혔다! 미션 성공!');
         }
         break;
       }
+
+      case 'BURIED': {
+        const k = Math.min(1, this.stateTimer / 0.6);
+        this.sprite.material.rotation = Math.sin(this.animTime * 25) * 0.25 * (1 - k);
+        this.h = -1.2 * k;
+        if (Math.random() < 0.3) this.renderer.emitFeathers(this.buryHay.sprite.position, 2, 0xe6c280);
+        if (this.stateTimer >= 0.9 && !this.successSent) {
+          this.successSent = true;
+          if (this.onMissionSuccess) this.onMissionSuccess();
+        }
+        this.place(0);
+        return;
+      }
+
+      case 'DEFEATED': {
+        this.relS -= 3.0 * dt;
+        this.h += 5.0 * dt;
+        this.sprite.material.rotation += 10 * dt;
+        if (this.h > 8) this.sprite.visible = false;
+        break;
+      }
+
+      default:
+        break;
     }
 
-    // Update 3D Transform
-    const bob = Math.abs(Math.sin(this.animTime * 14)) * 0.35;
-    const worldPos = this.renderer.getTrackWorldPos(this.trackPos, this.lanePos, 0.45 + bob);
-    this.mesh.position.copy(worldPos);
-    this.mesh.scale.set(pScale, pScale, pScale);
-
+    if (this.state !== 'BURY_RUN') this.s = player.s + this.relS;
+    const hop = this.hopTimer > 0 ? Math.sin((1 - this.hopTimer / 0.5) * Math.PI) * 1.4 : 0;
+    const bob = this.state === 'DEFEATED' ? 0 : Math.abs(Math.sin(this.animTime * 12)) * 0.18 + hop;
     if (this.state !== 'EVADED' && this.state !== 'DEFEATED') {
-      this.mesh.rotation.z = roadAngle * 0.3 + Math.sin(this.animTime * 12) * 0.08;
-      this.mesh.rotation.y = Math.sin(this.animTime * 6) * 0.15;
-      this.mesh.rotation.x = this.state === 'LUNGING' ? -0.35 : 0.22;
+      this.sprite.material.rotation = Math.sin(this.animTime * 12) * 0.07;
+    }
+    this.place(bob);
+  }
+
+  finishDefeated() {
+    this.setState('DEFEATED');
+    soundSynth.playThunderLightning();
+    this.renderer.emitFeathers(this.sprite.position, 35, 0xffeb3b);
+    if (this.onMissionSuccess) this.onMissionSuccess();
+  }
+
+  place(bob) {
+    this.renderer.path.point(this.s, this.lane, this.h + bob, this.sprite.position);
+    const clipName = CLIP_FOR_STATE[this.state];
+    const clip = clipName ? this.renderer.anims.get('cat_grumpy', clipName) : null;
+    if (clip && this.stageId !== 2) {
+      this.animator.play(clip);
+      this.animator.update(1 / 60);
+      this.sprite.userData.aspect = this.animator.aspect;
+      const hgt = this.sprite.userData.height;
+      this.sprite.scale.set(hgt * this.sprite.userData.aspect, hgt, 1);
+    } else if (this.animator.clip) {
+      this.animator.stop();
+      this.sprite.material.map = this.staticTexture;
+      this.sprite.material.needsUpdate = true;
+      this.renderer.fitSprite(this.sprite);
     }
   }
 
@@ -245,11 +345,14 @@ export class BossCat {
     this.active = false;
     this.state = 'IDLE';
     this.evadeCount = 0;
+    this.haysAvoided = 0;
+    this.successSent = false;
     this.hasResolvedCurrentLunge = false;
-    if (this.mesh) {
-      this.mesh.visible = false;
-      this.mesh.position.set(0, -100, 0);
-      this.mesh.rotation.set(0, 0, 0);
-    }
+    this.buryHay = null;
+    this.h = 0;
+    this.sprite.visible = false;
+    this.sprite.material.rotation = 0;
+    this.sprite.material.color.setHex(0xffffff);
+    this.hays.forEach(h => h.deactivate());
   }
 }
