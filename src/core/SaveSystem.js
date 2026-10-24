@@ -2,7 +2,7 @@ const STORAGE_KEY = 'CHICKEN_RUN_V2_DATA';
 
 const defaultData = {
   highScores: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
-  unlockedStages: [1],
+  unlockedStages: [1, 2, 3, 4, 5],
   selectedCharacter: 'funny_chicken',
   featherLives: 4,
   bgmVolume: 0.8,
@@ -19,7 +19,10 @@ class SaveSystem {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        return Object.assign({}, defaultData, JSON.parse(stored));
+        const data = Object.assign({}, defaultData, JSON.parse(stored));
+        // Every stage is open; merge so saves made while stages were locked pick that up.
+        data.unlockedStages = [...new Set([...(data.unlockedStages || []), ...defaultData.unlockedStages])];
+        return data;
       }
     } catch (e) {
       console.warn('LocalStorage load failed, using defaults', e);
