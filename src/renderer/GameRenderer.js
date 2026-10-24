@@ -241,9 +241,16 @@ export class GameRenderer {
     const anim = this.playerAnimator;
 
     if (player.isMissionFailed) {
-      return anim.play(this.clip('caught'), { loop: false, duration: 1.6 });
+      return anim.play(this.clip('caught'), { loop: false, duration: 1.8 });
     }
     if (player.isMissionSuccess) {
+      if (!player.isGrounded && this.clip('jump')) {
+        const restart = player.jumpCount !== this.lastJumpCount;
+        this.lastJumpCount = player.jumpCount;
+        const airtime = (2 * player.jumpForce * 0.85) / Math.abs(player.gravity);
+        return anim.play(this.clip('jump'), { loop: false, duration: airtime, restart });
+      }
+      this.lastJumpCount = 0;
       return anim.play(this.clip('victory'), { loop: true, duration: 2.2 });
     }
 
@@ -293,7 +300,9 @@ export class GameRenderer {
 
     if (player.isMissionSuccess) {
       this.emitLightningStorm(sprite.position, dt);
+      this.emitCelebrationStars(sprite.position);
       sx = sy = 1.15;
+      if (!animated && !player.isGrounded) rot = time * Math.PI * 4.4;
     } else if (player.isMissionFailed) {
       this.clearLightningStorm();
       mat.color.setHex(0xb0bec5);
@@ -380,6 +389,32 @@ export class GameRenderer {
         vz: (Math.random() - 0.5) * 3,
         life: 1.0,
         decay: 1.2 + Math.random() * 0.8,
+        r: col.r,
+        g: col.g,
+        b: col.b
+      });
+    }
+  }
+
+  /** Radial burst of gold/white sparks around the hero during the mission-success ceremony. */
+  emitCelebrationStars(pos) {
+    const colors = [0xffd700, 0xffffff, 0xfff59d, 0xffb300];
+    const room = 220 - this.activeParticles.length;
+    const n = Math.min(4, room);
+    const cy = pos.y + this.playerSprite.userData.height * 0.55;
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const speed = 3.5 + Math.random() * 3;
+      const col = new THREE.Color(colors[(Math.random() * colors.length) | 0]);
+      this.activeParticles.push({
+        x: pos.x,
+        y: cy,
+        z: pos.z,
+        vx: Math.cos(a) * speed,
+        vy: Math.sin(a) * speed + 3.5,
+        vz: (Math.random() - 0.5) * 2,
+        life: 1.0,
+        decay: 0.9 + Math.random() * 0.5,
         r: col.r,
         g: col.g,
         b: col.b

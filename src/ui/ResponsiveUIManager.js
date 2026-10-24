@@ -2,6 +2,8 @@ import { Characters, Stages, ViewMode } from '../core/GameState.js';
 import { saveSystem } from '../core/SaveSystem.js';
 import { soundSynth } from '../audio/SoundSynth.js';
 
+const CEREMONY_MS = 3000;
+
 export class ResponsiveUIManager {
   constructor(gameManager) {
     this.gameManager = gameManager;
@@ -37,6 +39,9 @@ export class ResponsiveUIManager {
     this.missionSubtitle = document.getElementById('mission-subtitle');
     this.missionStars = document.getElementById('mission-stars');
     this.missionScoreBtn = document.getElementById('mission-score-btn');
+    this.missionCeremony = document.getElementById('mission-ceremony');
+    this.ceremonySparkles = document.getElementById('ceremony-sparkles');
+    this.missionTimer = null;
 
     // Modals & Screens
     this.titleScreen = document.getElementById('title-screen');
@@ -323,6 +328,7 @@ export class ResponsiveUIManager {
   }
 
   showHUD(feathersCount, stageName) {
+    this.clearMissionResult();
     if (this.titleScreen) {
       this.titleScreen.classList.add('hidden');
       this.titleScreen.style.display = 'none';
@@ -345,6 +351,7 @@ export class ResponsiveUIManager {
   }
 
   hideHUD() {
+    this.clearMissionResult();
     if (this.hud) this.hud.classList.add('hidden');
     if (this.controlsContainer) this.controlsContainer.classList.add('hidden');
     if (this.warningBanner) this.warningBanner.classList.add('hidden');
@@ -485,8 +492,8 @@ export class ResponsiveUIManager {
   }
 
   /**
-   * Displays "미션 성공" with lightning or "미션 실패" with gloomy atmosphere,
-   * and exactly 3 seconds later reveals the "스코어 보기" button at the bottom center.
+   * Ends the run: a 3-second ceremony (success: "미션 성공" title with radiating stars while the hero
+   * celebrates; failure: the hero's caught scene) and then the result box with the "스코어 보기" button.
    */
   showMissionResult(isSuccess, evades, target = 4, onShowScoreboard, texts = {}) {
     // Hide active gameplay controls & HUD
@@ -519,17 +526,15 @@ export class ResponsiveUIManager {
         : `회피 성공: ${evades} / ${target}`;
     }
 
-    // Initially hide the 3-second button
-    if (this.missionScoreBtn) {
-      this.missionScoreBtn.classList.add('hidden');
-      this.missionScoreBtn.style.display = 'none';
-    }
+    this.clearMissionResult();
+    if (isSuccess) this.showCeremony();
 
-    this.missionResultContainer.classList.remove('hidden');
-    this.missionResultContainer.style.display = 'flex';
-
-    // Exactly 3 seconds later, reveal the "스코어 보기" button
-    setTimeout(() => {
+    // The hero's victory / caught scene plays for CEREMONY_MS before the box and button appear.
+    this.missionTimer = setTimeout(() => {
+      this.missionTimer = null;
+      this.hideCeremony();
+      this.missionResultContainer.classList.remove('hidden');
+      this.missionResultContainer.style.display = 'flex';
       if (this.missionScoreBtn) {
         this.missionScoreBtn.classList.remove('hidden');
         this.missionScoreBtn.style.display = 'block';
@@ -539,7 +544,46 @@ export class ResponsiveUIManager {
           if (onShowScoreboard) onShowScoreboard();
         };
       }
-    }, 3000);
+    }, CEREMONY_MS);
+  }
+
+  showCeremony() {
+    if (!this.missionCeremony) return;
+    if (this.ceremonySparkles) {
+      this.ceremonySparkles.innerHTML = '';
+      for (let i = 0; i < 28; i++) {
+        const star = document.createElement('span');
+        star.textContent = i % 3 === 0 ? '✦' : '★';
+        star.style.left = `${Math.random() * 100}%`;
+        star.style.top = `${Math.random() * 75}%`;
+        star.style.fontSize = `${14 + Math.random() * 26}px`;
+        star.style.animationDelay = `${(Math.random() * 1.2).toFixed(2)}s`;
+        this.ceremonySparkles.appendChild(star);
+      }
+    }
+    this.missionCeremony.classList.remove('hidden');
+  }
+
+  hideCeremony() {
+    if (this.missionCeremony) this.missionCeremony.classList.add('hidden');
+    if (this.ceremonySparkles) this.ceremonySparkles.innerHTML = '';
+  }
+
+  /** Cancels a pending result reveal and hides the ceremony and result box (restart / back to title). */
+  clearMissionResult() {
+    if (this.missionTimer) {
+      clearTimeout(this.missionTimer);
+      this.missionTimer = null;
+    }
+    this.hideCeremony();
+    if (this.missionResultContainer) {
+      this.missionResultContainer.classList.add('hidden');
+      this.missionResultContainer.style.display = 'none';
+    }
+    if (this.missionScoreBtn) {
+      this.missionScoreBtn.classList.add('hidden');
+      this.missionScoreBtn.style.display = 'none';
+    }
   }
 
   showResultModal(isClear, score, maxCombo, feathersLeft) {

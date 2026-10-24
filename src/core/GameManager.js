@@ -228,14 +228,14 @@ export class GameManager {
     soundSynth.playThunderLightning();
     soundSynth.playFever();
 
-    this.player.isMissionSuccess = true;
+    this.player.startCelebration();
     this.renderer.setGloomyDefeatFX(false);
 
     const currentStageId = this.stageManager.stageConfig.id;
     saveSystem.setHighScore(currentStageId, this.scoreManager.score);
     saveSystem.unlockNextStage(currentStageId);
 
-    // Displays "미션 성공" with radiating lightning, then after 3s reveals "스코어 보기" button
+    // 3-second victory ceremony, then the "미션 성공" box with the "스코어 보기" button
     const target = this.bossCat.targetEvades;
     const texts = this.bossCat.usesHayFinale
       ? { success: `건초더미를 ${target}번 피했더니 늙은 고양이가 건초더미에 처박혔습니다!` }
@@ -258,7 +258,7 @@ export class GameManager {
     this.player.isMissionFailed = true;
     this.renderer.setGloomyDefeatFX(true);
 
-    // Displays "미션 실패" with gloomy atmosphere, then after 3s reveals "스코어 보기" button
+    // 3-second caught scene in the gloomy tint, then the "미션 실패" box with the "스코어 보기" button
     const done = this.bossCat.usesHayFinale ? this.bossCat.haysAvoided : evadeCount;
     this.uiManager.showMissionResult(false, done, this.bossCat.targetEvades, () => {
       this.uiManager.showResultModal(

@@ -249,16 +249,52 @@ export class Player {
     }
   }
 
+  /** Mission-success ceremony: alternate a short victory pose on the ground with somersault hops. */
+  startCelebration() {
+    this.isMissionSuccess = true;
+    this.celebrateTimer = 0.7;
+  }
+
+  updateCelebration(dt) {
+    if (this.isGrounded) {
+      this.celebrateTimer -= dt;
+      if (this.celebrateTimer <= 0) {
+        this.vy = this.jumpForce * 0.85;
+        this.isGrounded = false;
+        this.isJumping = true;
+        this.jumpCount = 1;
+        soundSynth.playJump();
+        if (this.renderer) {
+          this.renderer.emitFeathers(this.renderer.path.point(this.s, this.lane, 0.2), 14, 0xffd700);
+        }
+      }
+      return;
+    }
+    this.y += this.vy * dt;
+    this.vy += this.gravity * dt;
+    if (this.y <= 0) {
+      this.y = 0;
+      this.vy = 0;
+      this.isGrounded = true;
+      this.isJumping = false;
+      this.jumpCount = 0;
+      this.landTimer = 0.18;
+      this.celebrateTimer = 0.55;
+    }
+  }
+
   /** anchorS: camera anchor distance; the player sits forwardOffset ahead of it. */
   update(dt, anchorS) {
     if (this.isMissionSuccess || this.isMissionFailed) {
       this.forwardOffset += (2.5 - this.forwardOffset) * 2.5 * dt;
       this.lane += (0.0 - this.lane) * 2.5 * dt;
-      if (this.y > 0) {
-        this.y = Math.max(0, this.y - 6.0 * dt);
+      if (this.isMissionSuccess) {
+        this.updateCelebration(dt);
+      } else {
+        if (this.y > 0) this.y = Math.max(0, this.y - 6.0 * dt);
+        this.isGrounded = this.y === 0;
+        this.isJumping = !this.isGrounded;
       }
-      this.isGrounded = this.y === 0;
-      this.isJumping = !this.isGrounded;
       this.s = anchorS + this.forwardOffset;
       return;
     }

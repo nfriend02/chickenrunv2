@@ -516,6 +516,79 @@ button, input, .modal-card, .title-content, .dpad-btn, .action-btn, .opt-btn, .t
 }
 
 /* ============================================================
+   MISSION CEREMONY (3 s before the result box)
+   ============================================================ */
+.mission-ceremony {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 9vh;
+  z-index: 34;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.ceremony-rays {
+  position: absolute;
+  left: 50%;
+  top: 16vh;
+  width: 220vmax;
+  height: 220vmax;
+  margin-left: -110vmax;
+  margin-top: -110vmax;
+  background: repeating-conic-gradient(from 0deg,
+      rgba(255, 236, 130, 0.30) 0deg 6deg,
+      rgba(255, 255, 255, 0) 6deg 18deg);
+  -webkit-mask-image: radial-gradient(circle, #000 0%, rgba(0, 0, 0, 0.6) 18%, transparent 45%);
+  mask-image: radial-gradient(circle, #000 0%, rgba(0, 0, 0, 0.6) 18%, transparent 45%);
+  animation: ceremonyRays 6s linear infinite, fadeIn 0.6s ease-out;
+}
+
+.ceremony-sparkles {
+  position: absolute;
+  inset: 0;
+}
+
+.ceremony-sparkles span {
+  position: absolute;
+  color: #fff59d;
+  text-shadow: 0 0 10px #ffd700, 0 0 22px #ffffff;
+  animation: ceremonyTwinkle 1.2s ease-in-out infinite;
+}
+
+.ceremony-title {
+  position: relative;
+  font-size: clamp(40px, 8vw, 84px);
+  font-weight: 900;
+  letter-spacing: 3px;
+  color: #ffd700;
+  -webkit-text-stroke: 2px #7a4a00;
+  paint-order: stroke fill;
+  text-shadow: 0 0 18px #fff3a0, 0 0 40px #ffb300, 0 5px 0 #8d5a00, 0 8px 18px rgba(0, 0, 0, 0.7);
+  animation: ceremonyPop 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275), ceremonyPulse 1s ease-in-out 0.7s infinite alternate;
+}
+
+@keyframes ceremonyRays {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes ceremonyTwinkle {
+  0%, 100% { opacity: 0; transform: scale(0.3) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1.2) rotate(45deg); }
+}
+
+@keyframes ceremonyPop {
+  from { opacity: 0; transform: scale(0.2); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes ceremonyPulse {
+  from { transform: scale(1); filter: brightness(1); }
+  to { transform: scale(1.08); filter: brightness(1.3); }
+}
+/* ============================================================
    MISSION RESULT OVERLAY (SUCCESS / FAILURE)
    ============================================================ */
 .mission-result-container {

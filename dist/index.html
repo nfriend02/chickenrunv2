@@ -125,8 +125,8 @@
       }
     }, 7500);
   </script>
-  <script type="module" crossorigin src="/assets/index-D23ubNgE.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-BXPmh59K.css">
+  <script type="module" crossorigin src="/assets/index-DFBtBQRj.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-0u8Aw4Kn.css">
 </head>
 <body class="landscape-mode">
   <div id="game-app">
@@ -224,6 +224,13 @@
         <span class="alert-icon">⚡</span>
       </div>
 
+      <!-- 3-second ceremony shown before the mission result box -->
+      <div id="mission-ceremony" class="mission-ceremony hidden">
+        <div class="ceremony-rays"></div>
+        <div id="ceremony-sparkles" class="ceremony-sparkles"></div>
+        <div id="ceremony-title" class="ceremony-title">⭐ 미션 성공! ⭐</div>
+      </div>
+
       <!-- Mission Result Overlay (미션 성공 / 미션 실패) -->
       <div id="mission-result-container" class="mission-result-container hidden">
         <div id="mission-banner-card" class="mission-banner-card">
@@ -231,7 +238,7 @@
           <div id="mission-subtitle" class="mission-subtitle">늙은 고양이의 공격을 4회 완벽히 회피했습니다!</div>
           <div id="mission-stars" class="mission-stars">🌟🌟🌟🌟</div>
         </div>
-        <!-- Button appearing exactly 3 seconds after message -->
+        <!-- Shown together with the box once the 3-second ceremony ends -->
         <button id="mission-score-btn" class="comic-btn btn-huge btn-score-cta hidden">
           🏆 스코어 보기
         </button>
