@@ -59,13 +59,21 @@ CLIP_OVERRIDES = {
     ("turbo_turkey", "hit"): {"start": 0.8, "end": 3.2},
     ("turbo_turkey", "caught"): {"start": 0.6, "end": 2.8},
     # Subjects that walk away from / toward the camera shrink or grow; normalize per-frame size.
-    ("cat_grumpy", "walk"): {"start": 0.0, "end": 2.2, "normalize": True},
+    ("cat_grumpy", "walk"): {"start": 1.0, "end": None, "normalize": True},
     ("cat_grumpy", "chase"): {"start": 0.0, "end": 1.3},
     ("dog", "move"): {"start": 1.2, "end": None, "normalize": True},
     ("cow_rushing", "move"): {"start": 1.2, "end": None, "normalize": True},
 }
 
 MAX_FRAMES = {"loop": 12, "once": 16}
+
+# Road edges (fraction of ground_tile width) for tiles where colour-based detection fails,
+# measured from the per-column colour profile. Stage 5 includes the wooden rails.
+ROAD_OVERRIDES = {
+    3: (0.21, 0.775),
+    4: (0.31, 0.67),
+    5: (0.22, 0.765),
+}
 
 _rembg_session = None
 
@@ -227,8 +235,25 @@ def build_sheet(char, action, rgba_frames, loop):
     return meta
 
 
+def drop_specks(rgba, min_frac=0.06):
+    """Clear detached alpha blobs smaller than min_frac of the largest one (stray marks in the source)."""
+    from scipy import ndimage
+    arr = np.asarray(rgba).copy()
+    mask = arr[:, :, 3] > 40
+    # Erode first so blobs touching the subject through a few fur pixels still separate.
+    labels, n = ndimage.label(ndimage.binary_erosion(mask, iterations=8))
+    if n <= 1:
+        return rgba
+    sizes = ndimage.sum(np.ones_like(labels), labels, index=range(1, n + 1))
+    keep = [i + 1 for i, s in enumerate(sizes) if s >= sizes.max() * min_frac]
+    kept = ndimage.binary_dilation(np.isin(labels, keep), iterations=14) & mask
+    arr[:, :, 3][~kept] = 0
+    return Image.fromarray(arr)
+
+
 def normalize_size(rgba_frames):
     """Rescale each frame so the subject keeps a constant height, bottom-centred."""
+    rgba_frames = [drop_specks(f) for f in rgba_frames]
     boxes = [f.getchannel("A").point(lambda v: 255 if v > 40 else 0).getbbox() for f in rgba_frames]
     heights = [b[3] - b[1] for b in boxes if b]
     if not heights:
@@ -428,7 +453,9 @@ def process_stage_background(stage_no):
     tile.save(out / "ground.webp", "WEBP", quality=88, method=6)
 
     u0, u1 = full if full else (0.33, 0.67)
-    if u1 - u0 > 0.7:
+    if stage_no in ROAD_OVERRIDES:
+        u0, u1 = ROAD_OVERRIDES[stage_no]
+    elif u1 - u0 > 0.7:
         log(f"  road detection failed for stage{stage_no:02d} (width {u1 - u0:.2f}), using 0.30-0.70")
         u0, u1 = 0.30, 0.70
     grass_w = int(tile.width * max(0.05, u0 - 0.03))

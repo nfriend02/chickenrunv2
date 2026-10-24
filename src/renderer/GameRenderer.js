@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { StageWorld } from '../world/StageWorld.js';
 import { AnimLibrary } from '../animation/AnimLibrary.js';
 import { SpriteAnimator } from '../animation/SpriteAnimator.js';
+import { ENTITY_SCALE } from '../core/WorldScale.js';
 
 const CAMERA_PRESETS = {
   LANDSCAPE: { fov: 50, height: 4.4, back: 7.0, lookAhead: 12, lookHeight: 0.9, laneFollow: 0.35 },
@@ -17,7 +18,7 @@ const CHARACTER_HEIGHT = {
 };
 
 // Physics jump units (Player.y) to world units above the road.
-export const JUMP_VISUAL_SCALE = 0.5;
+export const JUMP_VISUAL_SCALE = 0.5 * ENTITY_SCALE;
 
 export class GameRenderer {
   constructor(canvas) {
@@ -213,7 +214,7 @@ export class GameRenderer {
   setPlayerCharacter(character) {
     if (!character) return;
     this.playerCharId = character.id;
-    this.playerSprite.userData.height = CHARACTER_HEIGHT[character.id] || 1.75;
+    this.playerSprite.userData.height = (CHARACTER_HEIGHT[character.id] || 1.75) * ENTITY_SCALE;
     this.playerStaticTexture = character.imagePath ? this.loadTexture(character.imagePath) : null;
     this.playerAnimator.stop();
     this.useStaticPlayerTexture();

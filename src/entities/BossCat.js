@@ -1,6 +1,7 @@
 import { soundSynth } from '../audio/SoundSynth.js';
 import { Obstacle } from './Obstacle.js';
 import { SpriteAnimator } from '../animation/SpriteAnimator.js';
+import { ENTITY_SCALE } from '../core/WorldScale.js';
 
 const STALK_OFFSET = -4.2;
 // While stalking the cat keeps to the lane beside the player so the hero stays visible.
@@ -56,7 +57,7 @@ export class BossCat {
     this.onMissionSuccess = null;
     this.onMissionFailed = null;
 
-    this.sprite = renderer.createBillboard('/assets/images/npcs/cat_grumpy.png', 1.9);
+    this.sprite = renderer.createBillboard('/assets/images/npcs/cat_grumpy.png', 1.9 * ENTITY_SCALE);
     this.staticTexture = this.sprite.material.map;
     this.animator = new SpriteAnimator(this.sprite);
 
@@ -92,9 +93,6 @@ export class BossCat {
     this.targetEvades = this.usesHayFinale ? HAY_TARGET : 4;
     this.hays.forEach(h => h.deactivate());
 
-    const img = stageId === 2 ? '/assets/images/npcs/cat_tractor.png' : '/assets/images/npcs/cat_grumpy.png';
-    this.renderer.setBillboardTexture(this.sprite, img);
-    this.staticTexture = this.sprite.material.map;
     this.animator.stop();
     this.sprite.material.color.setHex(0xffffff);
     this.sprite.material.rotation = 0;
@@ -286,7 +284,7 @@ export class BossCat {
       case 'BURIED': {
         const k = Math.min(1, this.stateTimer / 0.6);
         this.sprite.material.rotation = Math.sin(this.animTime * 25) * 0.25 * (1 - k);
-        this.h = -1.2 * k;
+        this.h = -1.2 * ENTITY_SCALE * k;
         if (Math.random() < 0.3) this.renderer.emitFeathers(this.buryHay.sprite.position, 2, 0xe6c280);
         if (this.stateTimer >= 0.9 && !this.successSent) {
           this.successSent = true;
@@ -309,7 +307,7 @@ export class BossCat {
     }
 
     if (this.state !== 'BURY_RUN') this.s = player.s + this.relS;
-    const hop = this.hopTimer > 0 ? Math.sin((1 - this.hopTimer / 0.5) * Math.PI) * 1.4 : 0;
+    const hop = this.hopTimer > 0 ? Math.sin((1 - this.hopTimer / 0.5) * Math.PI) * 1.4 * ENTITY_SCALE : 0;
     const bob = this.state === 'DEFEATED' ? 0 : Math.abs(Math.sin(this.animTime * 12)) * 0.18 + hop;
     if (this.state !== 'EVADED' && this.state !== 'DEFEATED') {
       this.sprite.material.rotation = Math.sin(this.animTime * 12) * 0.07;
@@ -328,7 +326,7 @@ export class BossCat {
     this.renderer.path.point(this.s, this.lane, this.h + bob, this.sprite.position);
     const clipName = CLIP_FOR_STATE[this.state];
     const clip = clipName ? this.renderer.anims.get('cat_grumpy', clipName) : null;
-    if (clip && this.stageId !== 2) {
+    if (clip) {
       this.animator.play(clip);
       this.animator.update(this.frameDt || 1 / 60);
       this.sprite.userData.aspect = this.animator.aspect;

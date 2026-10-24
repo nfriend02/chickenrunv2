@@ -1,3 +1,5 @@
 ﻿node_modules/
 .cache/
+# Source clips for scripts/asset_pipeline.py; the game only loads public/assets/anim.
+raw_videos/
 

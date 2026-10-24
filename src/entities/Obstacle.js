@@ -1,5 +1,6 @@
 import { soundSynth } from '../audio/SoundSynth.js';
 import { SpriteAnimator } from '../animation/SpriteAnimator.js';
+import { ENTITY_SCALE, ROAD_SCALE } from '../core/WorldScale.js';
 
 /**
  * behavior: static | wander | rush | zone
@@ -22,7 +23,13 @@ export class Obstacle {
   constructor(renderer, typeKey) {
     this.renderer = renderer;
     this.typeKey = typeKey;
-    this.def = ObstacleDefs[typeKey] || ObstacleDefs.haystack;
+    const base = ObstacleDefs[typeKey] || ObstacleDefs.haystack;
+    this.def = {
+      ...base,
+      height: base.height * ENTITY_SCALE,
+      halfLen: base.halfLen * ENTITY_SCALE,
+      halfWidth: base.halfWidth * ROAD_SCALE
+    };
 
     this.s = 0;
     this.lane = 0;

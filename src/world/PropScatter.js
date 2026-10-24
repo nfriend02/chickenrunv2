@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { ROAD_SCALE } from '../core/WorldScale.js';
 
 function mulberry32(seed) {
   let a = seed >>> 0;
@@ -67,7 +68,7 @@ export class PropScatter {
     const def = this.pickDef();
     this.side = -this.side;
     const span = (def.maxOffset ?? 9) - (def.minOffset ?? 4);
-    const offset = this.side * ((def.minOffset ?? 4) + this.rand() * span);
+    const offset = this.side * ((def.minOffset ?? 4) + this.rand() * span) * ROAD_SCALE;
     const height = def.height * (0.85 + this.rand() * 0.3);
     item.s = s;
     item.offset = offset;

@@ -1,5 +1,6 @@
 import { soundSynth } from '../audio/SoundSynth.js';
 import { saveSystem } from '../core/SaveSystem.js';
+import { ENTITY_SCALE, ROAD_SCALE } from '../core/WorldScale.js';
 
 // Forward offset (world units ahead of the camera anchor) the player may occupy on screen.
 const MIN_OFFSET = 0.5;
@@ -65,7 +66,7 @@ export class Player {
     this.offsetSpeed = 3.0 + charConfig.speed * 0.5;
     this.laneSpeed = 1.6 + charConfig.speed * 0.25;
     this.jumpForce = 13.5 + charConfig.jumpPower * 0.8;
-    this.hitRadius = charConfig.hitboxRadius * 0.75;
+    this.hitRadius = charConfig.hitboxRadius * 0.75 * ROAD_SCALE;
     this.magnetRadius = charConfig.magnetRadius * 1.6;
 
     if (charConfig.id === 'speedy_chick') {
@@ -129,7 +130,7 @@ export class Player {
   }
 
   get worldHeight() {
-    return this.y * 0.5;
+    return this.y * 0.5 * ENTITY_SCALE;
   }
 
   jump() {

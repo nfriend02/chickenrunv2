@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { ROAD_SCALE } from '../core/WorldScale.js';
 
 const UP = new THREE.Vector3(0, 1, 0);
 
@@ -9,12 +10,12 @@ const UP = new THREE.Vector3(0, 1, 0);
  */
 export class RoadPath {
   constructor() {
-    this.halfWidth = 2.2;
     this.setShape({ curviness: 1.0, hilliness: 1.0, seed: 1 });
   }
 
+  /** halfWidth is the base width; ROAD_SCALE is applied here so every consumer sees the scaled road. */
   setShape({ curviness = 1.0, hilliness = 1.0, seed = 1, halfWidth = 2.2 }) {
-    this.halfWidth = halfWidth;
+    this.halfWidth = halfWidth * ROAD_SCALE;
     this.curviness = curviness;
     this.hilliness = hilliness;
     this.p1 = seed * 1.7;

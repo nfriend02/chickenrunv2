@@ -3,8 +3,8 @@
   "ground": "ground.webp",
   "grass": "grass.webp",
   "groundAspect": 0.4578,
-  "roadU0": 0.3,
-  "roadU1": 0.7,
+  "roadU0": 0.21,
+  "roadU1": 0.775,
   "fogColor": "#865831",
   "perspectiveWarning": false,
   "props": []

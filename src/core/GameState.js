@@ -137,8 +137,8 @@ export const Stages = [
     world: { dir: '/assets/stages/stage02' },
     theme: '탁 트인 푸른 목장',
     obstacles: ['fence', 'cow_rushing', 'rock'],
-    bossEvent: '고양이 트랙터가 울타리에 걸림',
-    bossImage: '/assets/images/npcs/cat_tractor.png'
+    bossEvent: '늙은 고양이가 초원을 가로질러 달려듦',
+    bossImage: '/assets/images/npcs/cat_grumpy.png'
   },
   {
     id: 3,
