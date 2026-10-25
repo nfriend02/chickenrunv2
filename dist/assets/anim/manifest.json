@@ -2,7 +2,18 @@
   "cat_grumpy": [
     "angry",
     "chase",
+    "crouch",
     "defeated",
+    "dizzy",
+    "faceplant",
+    "hiss",
+    "launched",
+    "miss_tumble",
+    "pounce",
+    "run_back",
+    "run_diag",
+    "swipe",
+    "taunt",
     "walk"
   ],
   "cow_rushing": [
