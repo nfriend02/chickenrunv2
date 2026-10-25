@@ -1,5 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAnalytics, isSupported, logEvent } from 'firebase/analytics';
+import { getAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
 
 // Web config is public by design; access is controlled by Firebase security rules.
 const firebaseConfig = {
@@ -13,6 +15,9 @@ const firebaseConfig = {
 };
 
 export const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app);
+auth.languageCode = 'ko';
+export const db = getFirestore(app);
 
 let analytics = null;
 // Analytics needs cookies/IndexedDB; skip it in unsupported or headless environments.

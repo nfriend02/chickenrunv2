@@ -595,7 +595,11 @@ export class ResponsiveUIManager {
     }
   }
 
-  showResultModal(isClear, score, maxCombo, feathersLeft) {
+  showResultModal(isClear, score, maxCombo, feathersLeft, mileageEarned = 0) {
+    const mileageEl = document.getElementById('result-mileage');
+    if (mileageEl) {
+      mileageEl.textContent = `+${mileageEarned.toLocaleString()} (누적 ${saveSystem.getMileage().toLocaleString()})`;
+    }
     const titleEl = document.getElementById('result-status-title');
     const scoreEl = document.getElementById('result-score');
     const comboEl = document.getElementById('result-combo');

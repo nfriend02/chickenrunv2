@@ -125,8 +125,8 @@
       }
     }, 7500);
   </script>
-  <script type="module" crossorigin src="/assets/index-DSurgzwy.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-DOD2VhQY.css">
+  <script type="module" crossorigin src="/assets/index-npY93ulh.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-ByF7ogBe.css">
 </head>
 <body class="landscape-mode">
   <div id="game-app">
@@ -277,6 +277,11 @@
       <!-- Main Title Screen (Shown after intro finishes or is skipped) -->
       <section id="title-screen" class="title-screen hidden">
         <div class="title-bg-glow"></div>
+        <div id="account-bar" class="account-bar hidden">
+          <span class="account-name" id="account-name">게스트</span>
+          <span class="account-mileage">🪙 <strong id="account-mileage">0</strong> 마일리지</span>
+          <button id="logout-btn" class="account-logout" type="button">로그아웃</button>
+        </div>
         <div class="title-content">
           <div class="title-logo-container">
             <div class="logo-subtitle">COMIC & FUNNY 3D RUNNING ACTION</div>
@@ -326,6 +331,46 @@
               🔄 화면 전환: <span id="current-mode-label">가로 횡스크롤 (Landscape)</span>
             </button>
           </div>
+        </div>
+      </section>
+
+      <!-- Login Screen (over the title until the player signs in) -->
+      <section id="login-screen" class="login-screen hidden">
+        <div class="login-card">
+          <h1 class="login-logo">🐔 CHICKEN RUN <span class="logo-v2">V2</span></h1>
+          <p class="login-desc">로그인하면 마일리지와 기록이 저장됩니다</p>
+
+          <div class="login-view" data-view="menu">
+            <button class="login-btn login-google" data-action="google" type="button"><span class="login-ico">G</span> Google로 로그인</button>
+            <button class="login-btn login-email" data-goto="email" type="button"><span class="login-ico">✉️</span> 이메일로 로그인</button>
+            <button class="login-btn login-phone" data-goto="phone" type="button"><span class="login-ico">📱</span> 전화번호로 로그인</button>
+            <button class="login-btn login-guest" data-action="guest" type="button"><span class="login-ico">🐣</span> 게스트로 시작</button>
+          </div>
+
+          <form class="login-view hidden" data-view="email" id="email-form" novalidate>
+            <input class="login-input" id="login-email" type="email" placeholder="이메일" autocomplete="email" required>
+            <input class="login-input" id="login-password" type="password" placeholder="비밀번호 (6자 이상)" autocomplete="current-password" required>
+            <button class="login-btn login-submit" type="submit" data-action="email-signin">로그인</button>
+            <button class="login-btn login-alt" type="button" data-action="email-signup">새 계정 만들기</button>
+            <button class="login-link" type="button" data-action="email-reset">비밀번호를 잊으셨나요?</button>
+            <button class="login-link" type="button" data-goto="menu">← 다른 방법으로 로그인</button>
+          </form>
+
+          <form class="login-view hidden" data-view="phone" id="phone-form" novalidate>
+            <div class="phone-step" data-step="number">
+              <input class="login-input" id="login-phone" type="tel" placeholder="휴대폰 번호 (010-1234-5678)" autocomplete="tel" required>
+              <button class="login-btn login-submit" type="submit" data-action="phone-send">인증번호 받기</button>
+            </div>
+            <div class="phone-step hidden" data-step="code">
+              <input class="login-input" id="login-code" type="text" inputmode="numeric" maxlength="6" placeholder="인증번호 6자리" autocomplete="one-time-code">
+              <button class="login-btn login-submit" type="button" data-action="phone-verify">확인</button>
+              <button class="login-link" type="button" data-action="phone-retry">번호 다시 입력</button>
+            </div>
+            <button class="login-link" type="button" data-goto="menu">← 다른 방법으로 로그인</button>
+          </form>
+
+          <p class="login-message" id="login-message" role="status"></p>
+          <div id="recaptcha-container"></div>
         </div>
       </section>
 
@@ -438,6 +483,10 @@
             <div class="stat-line">
               <span class="stat-label">남은 깃털:</span>
               <span id="result-feathers" class="stat-num">🪶🪶🪶</span>
+            </div>
+            <div class="stat-line">
+              <span class="stat-label">획득 마일리지:</span>
+              <span id="result-mileage" class="stat-num">+0</span>
             </div>
           </div>
 

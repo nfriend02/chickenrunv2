@@ -1,5 +1,5 @@
 import { GameManager } from './core/GameManager.js';
-import './core/firebase.js';
+import { AuthUI } from './ui/AuthUI.js';
 
 function startApp() {
   if (window.__CHICKEN_RUN_INITIALIZED__) return;
@@ -9,6 +9,7 @@ function startApp() {
     try {
       const game = new GameManager(canvas);
       window.__CHICKEN_RUN_GAME__ = game;
+      window.__AUTH_UI__ = new AuthUI();
       console.log('🐔 Chicken Run Version2 Game Engine Initialized Successfully!');
     } catch (err) {
       console.error('❌ Failed to initialize GameManager:', err);

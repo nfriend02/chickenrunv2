@@ -1,5 +1,6 @@
 import { GameStateEnum, Characters, Stages } from './GameState.js';
 import { saveSystem } from './SaveSystem.js';
+import { trackEvent } from './firebase.js';
 import { soundSynth } from '../audio/SoundSynth.js';
 import { GameRenderer } from '../renderer/GameRenderer.js';
 import { Player } from '../entities/Player.js';
@@ -234,6 +235,8 @@ export class GameManager {
     const currentStageId = this.stageManager.stageConfig.id;
     saveSystem.setHighScore(currentStageId, this.scoreManager.score);
     saveSystem.unlockNextStage(currentStageId);
+    const earned = saveSystem.addRunMileage(this.scoreManager.score, true);
+    trackEvent('stage_clear', { stage: currentStageId, score: this.scoreManager.score, mileage: earned });
 
     // 3-second victory ceremony, then the "미션 성공" box with the "스코어 보기" button
     const target = this.bossCat.targetEvades;
@@ -245,7 +248,8 @@ export class GameManager {
         true,
         this.scoreManager.score,
         this.scoreManager.maxCombo,
-        this.player.feathers
+        this.player.feathers,
+        earned
       );
     }, texts);
   }
@@ -261,13 +265,19 @@ export class GameManager {
     this.bossCat.gloat();
 
     // 3-second caught scene in the gloomy tint, then the "미션 실패" box with the "스코어 보기" button
+    const stageId = this.stageManager.stageConfig.id;
+    saveSystem.setHighScore(stageId, this.scoreManager.score);
+    const earned = saveSystem.addRunMileage(this.scoreManager.score, false);
+    trackEvent('stage_fail', { stage: stageId, score: this.scoreManager.score, mileage: earned });
+
     const done = this.bossCat.usesHayFinale ? this.bossCat.haysAvoided : evadeCount;
     this.uiManager.showMissionResult(false, done, this.bossCat.targetEvades, () => {
       this.uiManager.showResultModal(
         false,
         this.scoreManager.score,
         this.scoreManager.maxCombo,
-        0
+        0,
+        earned
       );
     });
   }
