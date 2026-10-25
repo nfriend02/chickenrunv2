@@ -1929,3 +1929,63 @@ button, input, .modal-card, .title-content, .dpad-btn, .action-btn, .opt-btn, .t
 [data-ux="mobile-portrait"] .combo-box { font-size: 12px; padding: 3px 8px; }
 [data-ux="mobile-portrait"] .action-btn.jump-btn { width: 86px; height: 86px; }
 [data-ux="mobile-portrait"] .dpad-wrapper { transform: scale(0.9); transform-origin: bottom right; }
+
+/* ============================================================
+   LOCALIZED TEXT LAYOUT (ko / en / ja lengths)
+   ============================================================ */
+/* keep-all keeps Korean words whole but stops Japanese (no spaces) from wrapping at all. */
+html:lang(ja) :is(.sign-note, .sign-message, .mp-hint, #confirm-text) { word-break: normal; line-break: strict; }
+
+/* Centred overlays use their full natural width (left: 50% alone caps them at half the screen) and wrap tidily. */
+.warning-banner, .boss-banner, .cat-attack-alert, .cat-evade-hud {
+  width: max-content;
+  max-width: calc(100% - 24px);
+  white-space: normal;
+  text-align: center;
+  justify-content: center;
+}
+.warning-banner > *, .boss-banner-content > *, .cat-attack-alert > *, .cat-evade-hud > * { flex-shrink: 0; }
+#warning-text, #boss-banner-text, #cat-alert-text, .evade-title { flex-shrink: 1; min-width: 0; word-break: keep-all; overflow-wrap: anywhere; }
+html:lang(ja) :is(#warning-text, #boss-banner-text, #cat-alert-text, .evade-title) { word-break: normal; }
+
+/* Title tags wrap as whole chips onto a second row instead of breaking inside. */
+.char-tags { flex-wrap: wrap; }
+.tag { white-space: nowrap; }
+
+/* Picker cards: the action button keeps its caption on one line; the name/description column wraps instead. */
+.char-item-card, .stage-item-card { gap: 10px; }
+.char-item-card .card-left, .stage-item-card .card-left { flex: 1; min-width: 0; }
+.char-item-card button, .stage-item-card button { white-space: nowrap; flex-shrink: 0; }
+
+/* Score card: value moves under its label (right-aligned) when both don't fit on one line. */
+.stat-line { flex-wrap: wrap; align-items: baseline; column-gap: 12px; }
+.stat-label { white-space: nowrap; }
+.stat-num { margin-left: auto; text-align: right; }
+
+/* My Page rows: a long value drops below its label rather than squeezing into a narrow column. */
+.mp-row { flex-wrap: wrap; row-gap: 4px; }
+.mp-value { flex-shrink: 0; max-width: 100%; margin-left: auto; }
+.mp-runs { white-space: nowrap; }
+
+/* Portrait: pickers start below the account bar; game overlays stay clear of the two-row HUD. */
+[data-ux="mobile-portrait"] #char-modal,
+[data-ux="mobile-portrait"] #stage-modal { padding-top: calc(108px + env(safe-area-inset-top, 0px)); }
+[data-ux="mobile-portrait"] #char-modal .modal-card,
+[data-ux="mobile-portrait"] #stage-modal .modal-card { max-height: calc(var(--app-h, 100vh) - 124px); }
+[data-ux="mobile-portrait"] .char-item-card,
+[data-ux="mobile-portrait"] .stage-item-card { padding: 10px 12px; }
+[data-ux="mobile-portrait"] .char-item-card button,
+[data-ux="mobile-portrait"] .stage-item-card button { padding: 8px 12px; font-size: 13px; }
+[data-ux="mobile-portrait"] .card-name { font-size: 15px; }
+[data-ux="mobile-portrait"] .cat-evade-hud { top: calc(130px + env(safe-area-inset-top, 0px)); font-size: 13px; padding: 6px 14px; }
+[data-ux="mobile-portrait"] .warning-banner,
+[data-ux="mobile-portrait"] .cat-attack-alert { top: 25%; font-size: 16px; padding: 10px 16px; gap: 8px; }
+[data-ux="mobile-portrait"] .boss-banner { top: 36%; padding: 12px 18px; }
+[data-ux="mobile-portrait"] .boss-banner-content { font-size: 18px; gap: 8px; }
+/* Landscape: overlays stacked under the HUD (evade counter, then warnings, then the boss banner) so none cover each other. */
+[data-ux="mobile-landscape"] .cat-evade-hud { top: calc(80px + env(safe-area-inset-top, 0px)); font-size: 13px; padding: 4px 14px; }
+[data-ux="mobile-landscape"] .warning-banner,
+[data-ux="mobile-landscape"] .cat-attack-alert { top: calc(120px + env(safe-area-inset-top, 0px)); font-size: 16px; padding: 8px 18px; gap: 8px; }
+[data-ux="mobile-landscape"] .boss-banner { top: calc(172px + env(safe-area-inset-top, 0px)); padding: 8px 20px; }
+[data-ux="mobile-landscape"] .boss-banner-content { font-size: 18px; gap: 10px; }
+[data-ux="desktop"] .boss-banner { top: 28%; }
