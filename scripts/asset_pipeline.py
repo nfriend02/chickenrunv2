@@ -20,7 +20,7 @@ import sys
 from pathlib import Path
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
 ROOT = Path(__file__).resolve().parent.parent
 RAW_VIDEOS = ROOT / "raw_videos"
@@ -38,9 +38,10 @@ MAX_SHEET_WIDTH = 4096
 # Veo puts a small sparkle watermark near the bottom-right corner.
 WATERMARK_BOX = (0.86, 0.74, 0.97, 0.92)
 
-LOOP_ACTIONS = {"run", "walk", "chase", "move", "rush", "angry", "victory"}
+LOOP_ACTIONS = {"run", "walk", "chase", "move", "rush", "angry", "victory",
+                "run_back", "run_diag", "crouch", "taunt", "dizzy", "faceplant"}
 # Short cyclic motions get an auto-detected seamless loop; longer performances are sampled evenly.
-CYCLE_ACTIONS = {"run", "walk", "chase", "move", "rush"}
+CYCLE_ACTIONS = {"run", "walk", "chase", "move", "rush", "run_back", "run_diag"}
 
 # Per-clip source ranges in seconds. Clips not listed use the whole video.
 CLIP_OVERRIDES = {
@@ -61,6 +62,17 @@ CLIP_OVERRIDES = {
     # Subjects that walk away from / toward the camera shrink or grow; normalize per-frame size.
     ("cat_grumpy", "walk"): {"start": 1.0, "end": None, "normalize": True},
     ("cat_grumpy", "chase"): {"start": 0.0, "end": 1.3},
+    ("cat_grumpy", "run_back"): {"start": 0.0, "end": 2.4, "normalize": True},
+    ("cat_grumpy", "run_diag"): {"start": 2.3, "end": 3.5, "normalize": True},
+    ("cat_grumpy", "crouch"): {"start": 1.1, "end": 3.9},
+    ("cat_grumpy", "pounce"): {"start": 1.8, "end": 3.05, "normalize": True},
+    ("cat_grumpy", "miss_tumble"): {"start": 1.1, "end": 3.9},
+    ("cat_grumpy", "faceplant"): {"start": 0.2, "end": 3.9},
+    ("cat_grumpy", "launched"): {"start": 0.7, "end": 2.0},
+    ("cat_grumpy", "swipe"): {"start": 0.7, "end": 3.3},
+    ("cat_grumpy", "taunt"): {"start": 0.7, "end": 3.9},
+    ("cat_grumpy", "hiss"): {"start": 0.9, "end": 3.9},
+    ("cat_grumpy", "dizzy"): {"start": 1.4, "end": 2.7, "normalize": True},
     ("dog", "move"): {"start": 1.2, "end": None, "normalize": True},
     ("cow_rushing", "move"): {"start": 1.2, "end": None, "normalize": True},
 }
@@ -547,9 +559,54 @@ def cmd_sprites(args):
         log(f"[sprite] {dst.relative_to(ROOT)} {img.size}")
 
 
+# Head-to-chest square crops (x, y, size in source pixels) for the title-screen portrait circle.
+PORTRAIT_CROPS = {
+    "funny_chicken": (178, 25, 180),
+    "rooster_king": (240, 5, 190),
+    "speedy_chick": (340, 30, 210),
+    "daffy_duck": (330, 18, 190),
+    "turbo_turkey": (118, 60, 170),
+}
+
+# Head ellipses (cx, cy, rx, ry) in the 400x400 portrait; drawn over the circle's white rim.
+PORTRAIT_HEADS = {
+    "funny_chicken": (195, 150, 105, 140),
+    "rooster_king": (232, 140, 122, 130),
+    "speedy_chick": (240, 150, 150, 140),
+    "daffy_duck": (240, 155, 160, 145),
+    "turbo_turkey": (205, 140, 100, 130),
+}
+
+
+def cmd_portraits(args):
+    src_dir = OUT_IMAGES / "characters"
+    out_dir = src_dir / "portraits"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    for char, (x, y, size) in PORTRAIT_CROPS.items():
+        src = src_dir / f"{char}.png"
+        if not src.exists():
+            log(f"[portrait] {char}: missing {src.name}, skipped")
+            continue
+        img = Image.open(src).convert("RGBA")
+        canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+        canvas.paste(img.crop((x, y, x + size, y + size)), (0, 0))
+        portrait = canvas.resize((400, 400), Image.LANCZOS)
+        portrait.save(out_dir / f"{char}.png")
+        log(f"[portrait] {char} -> characters/portraits/{char}.png")
+
+        cx, cy, rx, ry = PORTRAIT_HEADS[char]
+        mask = Image.new("L", portrait.size, 0)
+        ImageDraw.Draw(mask).ellipse((cx - rx, cy - ry, cx + rx, cy + ry), fill=255)
+        mask = mask.filter(ImageFilter.GaussianBlur(6))
+        head = portrait.copy()
+        head.putalpha(ImageChops.multiply(portrait.getchannel("A"), mask))
+        head.save(out_dir / f"{char}_head.png")
+        log(f"[portrait] {char} -> characters/portraits/{char}_head.png")
+
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("command", choices=["videos", "backgrounds", "props", "sprites", "all"])
+    parser.add_argument("command", choices=["videos", "backgrounds", "props", "sprites", "portraits", "all"])
     parser.add_argument("--char")
     parser.add_argument("--action")
     parser.add_argument("--stage", type=int)
@@ -560,6 +617,8 @@ def main():
         cmd_props(args)
     if args.command in ("sprites", "all"):
         cmd_sprites(args)
+    if args.command in ("portraits", "all"):
+        cmd_portraits(args)
     if args.command in ("videos", "all"):
         cmd_videos(args)
 

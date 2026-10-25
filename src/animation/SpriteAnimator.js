@@ -13,6 +13,7 @@ export class SpriteAnimator {
     this.speed = 1;
     this.finished = false;
     this.onEnd = null;
+    this.flipX = false;
   }
 
   /**
@@ -50,10 +51,24 @@ export class SpriteAnimator {
     return this.clip ? this.clip.meta.frameWidth / this.clip.meta.frameHeight : 1;
   }
 
+  /** Mirror the clip horizontally (the texture window runs right-to-left). */
+  setFlipX(flip) {
+    if (this.flipX === flip) return;
+    this.flipX = flip;
+    if (this.clip) {
+      const f = this.frame;
+      this.frame = -1;
+      this.setFrame(Math.max(0, f));
+    }
+  }
+
   setFrame(i) {
     if (i === this.frame) return;
     this.frame = i;
-    this.clip.texture.offset.x = i / this.clip.meta.frameCount;
+    const n = this.clip.meta.frameCount;
+    const tex = this.clip.texture;
+    tex.repeat.x = this.flipX ? -1 / n : 1 / n;
+    tex.offset.x = this.flipX ? (i + 1) / n : i / n;
   }
 
   update(dt) {

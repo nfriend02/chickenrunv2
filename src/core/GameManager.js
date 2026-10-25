@@ -256,7 +256,9 @@ export class GameManager {
     soundSynth.playMissionFailed();
 
     this.player.isMissionFailed = true;
+    this.bossCat.gloat();
     this.renderer.setGloomyDefeatFX(true);
+    this.bossCat.gloat();
 
     // 3-second caught scene in the gloomy tint, then the "미션 실패" box with the "스코어 보기" button
     const done = this.bossCat.usesHayFinale ? this.bossCat.haysAvoided : evadeCount;
