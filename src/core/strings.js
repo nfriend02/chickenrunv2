@@ -10,8 +10,9 @@ export const STRINGS = {
     en: 'Chicken Run v2: a comic 3D running action mini-game with vertical and side scrolling',
     ja: 'コミカルな3Dアニメ風の縦・横スクロール ランニングアクション ミニゲーム Chicken Run v2'
   },
-  'lang.label': { ko: '한국어', en: 'English', ja: '日本語' },
-  'lang.title': { ko: '언어 변경 (한국어 → English → 日本語)', en: 'Change language (한국어 → English → 日本語)', ja: '言語を変更 (한국어 → English → 日本語)' },
+  // The button names the language it switches to next (ko → en → ja → ko).
+  'lang.label': { ko: 'English', en: 'Japanese', ja: 'Korean' },
+  'lang.title': { ko: '영어로 변경', en: 'Switch to Japanese', ja: '韓国語に切り替え' },
 
   // Intro
   'intro.soundTurnOn': { ko: '사운드 켜기 (현재: 음소거)', en: 'Turn sound on (now muted)', ja: 'サウンドをオン（現在: ミュート）' },
