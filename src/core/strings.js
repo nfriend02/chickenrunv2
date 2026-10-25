@@ -14,13 +14,9 @@ export const STRINGS = {
   'lang.title': { ko: '언어 변경 (한국어 → English → 日本語)', en: 'Change language (한국어 → English → 日本語)', ja: '言語を変更 (한국어 → English → 日本語)' },
 
   // Intro
-  'intro.soundOn': { ko: '사운드 ON', en: 'Sound ON', ja: 'サウンド ON' },
-  'intro.soundOff': { ko: '사운드 OFF', en: 'Sound OFF', ja: 'サウンド OFF' },
   'intro.soundTurnOn': { ko: '사운드 켜기 (현재: 음소거)', en: 'Turn sound on (now muted)', ja: 'サウンドをオン（現在: ミュート）' },
   'intro.soundTurnOff': { ko: '사운드 끄기 (현재: 소리 ON)', en: 'Turn sound off (now on)', ja: 'サウンドをオフ（現在: オン）' },
   'intro.soundAria': { ko: '사운드 켜기/끄기', en: 'Sound on/off', ja: 'サウンド オン/オフ' },
-  'intro.skip': { ko: '건너뛰기 ⏩', en: 'Skip ⏩', ja: 'スキップ ⏩' },
-
   // In-game HUD and banners
   'hud.pause': { ko: '일시정지', en: 'Pause', ja: '一時停止' },
   'hud.feathers': { ko: '남은 깃털 HP', en: 'Feathers left (HP)', ja: '残りの羽根 (HP)' },

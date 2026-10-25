@@ -7,7 +7,6 @@ export class IntroCutscene {
     this.video = document.getElementById('intro-video');
     this.soundBtn = document.getElementById('intro-sound-btn');
     this.soundIcon = document.getElementById('intro-sound-icon');
-    this.soundLabel = document.getElementById('intro-sound-label');
     this.skipBtn = document.getElementById('skip-intro-btn');
 
     this.isPlaying = true;
@@ -76,15 +75,11 @@ export class IntroCutscene {
   updateSoundDisplay() {
     if (!this.soundBtn) this.soundBtn = document.getElementById('intro-sound-btn');
     if (!this.soundIcon) this.soundIcon = document.getElementById('intro-sound-icon');
-    if (!this.soundLabel) this.soundLabel = document.getElementById('intro-sound-label');
     if (!this.video) this.video = document.getElementById('intro-video');
 
     const isMuted = !this.video || this.video.muted;
     if (this.soundIcon) {
       this.soundIcon.textContent = isMuted ? '🔇' : '🔊';
-    }
-    if (this.soundLabel) {
-      this.soundLabel.textContent = t(isMuted ? 'intro.soundOff' : 'intro.soundOn');
     }
     if (this.soundBtn) {
       this.soundBtn.classList.toggle('unmuted', !isMuted);

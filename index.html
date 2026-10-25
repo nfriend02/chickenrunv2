@@ -19,7 +19,6 @@
       }
       var v = document.getElementById('intro-video');
       var icon = document.getElementById('intro-sound-icon');
-      var label = document.getElementById('intro-sound-label');
       var btn = document.getElementById('intro-sound-btn');
       if (!v) return;
 
@@ -40,7 +39,6 @@
 
       if (icon) icon.textContent = willMute ? '🔇' : '🔊';
       var i18n = window.__I18N__;
-      if (label && i18n) label.textContent = i18n.t(willMute ? 'intro.soundOff' : 'intro.soundOn');
       if (btn) {
         btn.classList.toggle('unmuted', !willMute);
         if (i18n) btn.setAttribute('title', i18n.t(willMute ? 'intro.soundTurnOn' : 'intro.soundTurnOff'));
@@ -133,7 +131,6 @@
       <!-- Top-Left Sound On/Off Button (Default: Off / Muted) -->
       <button id="intro-sound-btn" class="intro-sound-btn" type="button" title="사운드 켜기 (현재: 음소거)" aria-label="사운드 켜기/끄기" data-i18n-aria="intro.soundAria" onclick="window.toggleIntroSound(event);">
         <span id="intro-sound-icon">🔇</span>
-        <span id="intro-sound-label">사운드 OFF</span>
       </button>
 
       <video id="intro-video" playsinline preload="auto" muted autoplay src="/assets/videos/intro.mp4" onended="window.finishIntroVideo(event);">
@@ -141,7 +138,7 @@
       </video>
 
       <!-- Bottom-Right Skip Button -->
-      <button id="skip-intro-btn" class="comic-btn" type="button" onclick="window.finishIntroVideo(event);" data-i18n="intro.skip">건너뛰기 ⏩</button>
+      <button id="skip-intro-btn" class="comic-btn" type="button" onclick="window.finishIntroVideo(event);">Skip ⏩</button>
     </div>
 
     <!-- UI Overlay Layer -->
