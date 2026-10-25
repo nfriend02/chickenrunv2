@@ -1,4 +1,5 @@
 import { GameManager } from './core/GameManager.js';
+import './core/firebase.js';
 
 function startApp() {
   if (window.__CHICKEN_RUN_INITIALIZED__) return;
