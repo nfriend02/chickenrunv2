@@ -2,6 +2,7 @@ import { soundSynth } from '../audio/SoundSynth.js';
 import { Obstacle } from './Obstacle.js';
 import { SpriteAnimator } from '../animation/SpriteAnimator.js';
 import { ENTITY_SCALE } from '../core/WorldScale.js';
+import { t } from '../core/i18n.js';
 
 const STALK_OFFSET = -4.2;
 // While stalking the cat keeps to the lane beside the player so the hero stays visible.
@@ -121,8 +122,8 @@ export class BossCat {
 
     if (this.onAttackWarning) {
       this.onAttackWarning(this.usesHayFinale
-        ? '🚪💥 늙은 고양이가 헛간 문을 부수고 나왔다! 건초더미 3개를 연속으로 피하세요!'
-        : `🚨 늙은 고양이 출현! (회피 목표: ${this.targetEvades}회)`);
+        ? t('boss.appearHay')
+        : t('boss.appear', { n: this.targetEvades }));
     }
   }
 
@@ -227,7 +228,7 @@ export class BossCat {
         if (this.stateTimer >= (this.usesHayFinale ? 2.6 : 2.0)) {
           this.setState('CHARGING');
           soundSynth.playWarning();
-          if (this.onAttackWarning) this.onAttackWarning('⚠️ 고양이 급습 임박! JUMP 버튼으로 회피하세요! 🪶');
+          if (this.onAttackWarning) this.onAttackWarning(t('boss.pounce'));
         }
         break;
       }
@@ -326,7 +327,7 @@ export class BossCat {
           soundSynth.playThunderLightning();
           this.renderer.emitFeathers(hay.sprite.position, 40, 0xe6c280);
           this.renderer.emitFeathers(hay.sprite.position, 20, 0xffd54f);
-          if (this.onAttackWarning) this.onAttackWarning('🌾 고양이가 건초더미에 푹 파묻혔다! 미션 성공!');
+          if (this.onAttackWarning) this.onAttackWarning(t('boss.buried'));
         }
         break;
       }

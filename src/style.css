@@ -1575,7 +1575,7 @@ button, input, .modal-card, .title-content, .dpad-btn, .action-btn, .opt-btn, .t
 .login-screen.busy .farm-sign { filter: brightness(0.85); pointer-events: none; }
 
 /* ============================================================
-   ACCOUNT BAR (마이페이지 / 로그아웃)
+   ACCOUNT BAR (language / My Page / logout)
    ============================================================ */
 .account-bar {
   position: absolute;
@@ -1624,6 +1624,10 @@ button, input, .modal-card, .title-content, .dpad-btn, .action-btn, .opt-btn, .t
 .account-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #3b2210; }
 .account-btn-mypage { background: linear-gradient(180deg, #FF9800 0%, #FF3D00 100%); }
 .account-btn-logout { background: linear-gradient(180deg, #C9935B 0%, #8B5A2B 100%); }
+.account-btn-lang { background: linear-gradient(180deg, #66BB6A 0%, #2E7D32 100%); }
+
+/* Holds the language button while the login screen (z-index 45) is up. */
+.account-bar.lang-float { z-index: 46; }
 
 /* ============================================================
    MY PAGE & CONFIRM
@@ -1871,13 +1875,14 @@ button, input, .modal-card, .title-content, .dpad-btn, .action-btn, .opt-btn, .t
 [data-ux="mobile-portrait"] .farm-sign { padding: 48px 16px 16px; }
 [data-ux="mobile-portrait"] .sign-title { font-size: 22px; }
 
-/* Top menu in two columns: name + mileage on the first row, the two buttons below. */
+/* Top menu: name + mileage on the first row, the language / My Page / logout buttons below. */
 [data-ux="mobile-portrait"] .account-bar {
   left: calc(10px + env(safe-area-inset-left, 0px));
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 8px;
 }
+[data-ux="mobile-portrait"] .account-bar.lang-float { left: auto; display: flex; }
 [data-ux="mobile-portrait"] .account-chip { grid-column: 1 / -1; justify-content: space-between; }
 [data-ux="mobile-portrait"] .account-name { max-width: none; }
 [data-ux="mobile-portrait"] .account-btn { padding: 9px 8px; font-size: 14px; }

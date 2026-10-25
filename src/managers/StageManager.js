@@ -1,6 +1,7 @@
 import { Stages, ItemTypes } from '../core/GameState.js';
 import { Item } from '../entities/Item.js';
 import { Obstacle, ObstacleDefs } from '../entities/Obstacle.js';
+import { obstacleName, stageName, t } from '../core/i18n.js';
 
 // World units ahead of the camera anchor where new things appear (inside the fog).
 const SPAWN_AHEAD = 62;
@@ -71,7 +72,7 @@ export class StageManager {
     this.elapsedTime += dt;
     const progress = Math.min(1.0, this.elapsedTime / this.stageDuration);
     if (this.onStageProgress) {
-      this.onStageProgress(progress, this.stageConfig.name);
+      this.onStageProgress(progress, stageName(this.stageConfig));
     }
 
     if (!this.bossChaseTriggered && this.elapsedTime >= this.stageDuration - BOSS_LEAD_TIME) {
@@ -188,7 +189,7 @@ export class StageManager {
     const lane = (Math.random() - 0.5) * 1.6;
     if (obs.isRushing) {
       obs.spawn(Math.min(s, anchorS + RUSH_SPAWN_AHEAD), lane);
-      if (this.onWarning) this.onWarning(`${obs.def.name} 돌진 경고!`);
+      if (this.onWarning) this.onWarning(t('warn.rush', { name: obstacleName(obs.typeKey) }));
     } else {
       obs.spawn(s, lane);
     }

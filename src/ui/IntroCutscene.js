@@ -1,3 +1,5 @@
+import { i18n, t } from '../core/i18n.js';
+
 export class IntroCutscene {
   constructor(onComplete) {
     this.onComplete = onComplete;
@@ -15,6 +17,8 @@ export class IntroCutscene {
     window.__INTRO_CUTSCENE__ = this;
 
     this.setupListeners();
+    this.updateSoundDisplay();
+    i18n.subscribe(() => this.updateSoundDisplay());
   }
 
   setupListeners() {
@@ -80,16 +84,11 @@ export class IntroCutscene {
       this.soundIcon.textContent = isMuted ? '🔇' : '🔊';
     }
     if (this.soundLabel) {
-      this.soundLabel.textContent = isMuted ? '사운드 OFF' : '사운드 ON';
+      this.soundLabel.textContent = t(isMuted ? 'intro.soundOff' : 'intro.soundOn');
     }
     if (this.soundBtn) {
-      if (isMuted) {
-        this.soundBtn.classList.remove('unmuted');
-        this.soundBtn.setAttribute('title', '사운드 켜기 (현재: 음소거 OFF)');
-      } else {
-        this.soundBtn.classList.add('unmuted');
-        this.soundBtn.setAttribute('title', '사운드 끄기 (현재: 소리 ON)');
-      }
+      this.soundBtn.classList.toggle('unmuted', !isMuted);
+      this.soundBtn.setAttribute('title', t(isMuted ? 'intro.soundTurnOn' : 'intro.soundTurnOff'));
     }
   }
 

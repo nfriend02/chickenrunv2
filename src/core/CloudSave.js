@@ -9,6 +9,7 @@ import {
 import { Timestamp, doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { auth, db, trackEvent } from './firebase.js';
 import { saveSystem } from './SaveSystem.js';
+import { t } from './i18n.js';
 
 const PUSH_DELAY_MS = 1500;
 // Guest records are kept this long after the last play, then removed by a Firestore TTL policy on expireAt.
@@ -42,7 +43,6 @@ export function providerOf(user) {
   return id || 'unknown';
 }
 
-export const PROVIDER_LABEL = { guest: '게스트', google: 'Google', email: '이메일', phone: '휴대폰번호' };
 
 /**
  * Keeps the local save (SaveSystem / localStorage) in sync with Firestore users/{uid}
@@ -91,7 +91,7 @@ class CloudSave {
 
   displayName() {
     if (!this.user) return '';
-    if (this.user.isAnonymous) return this.profile?.nickname || '게스트';
+    if (this.user.isAnonymous) return this.profile?.nickname || t('account.guest');
     return this.user.displayName || this.accountId();
   }
 
@@ -161,7 +161,7 @@ class CloudSave {
       updatedAt: serverTimestamp()
     };
     if (this.user.isAnonymous) {
-      data.nickname = this.profile?.nickname || '게스트';
+      data.nickname = this.profile?.nickname || 'Guest';
       data.expireAt = Timestamp.fromMillis(Date.now() + GUEST_RETENTION_MS);
     }
     if (isNew) data.createdAt = serverTimestamp();

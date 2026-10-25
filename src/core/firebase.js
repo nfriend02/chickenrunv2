@@ -2,6 +2,7 @@ import { initializeApp } from 'firebase/app';
 import { getAnalytics, isSupported, logEvent } from 'firebase/analytics';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { i18n } from './i18n.js';
 
 // Web config is public by design; access is controlled by Firebase security rules.
 const firebaseConfig = {
@@ -16,7 +17,9 @@ const firebaseConfig = {
 
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-auth.languageCode = 'ko';
+// Password-reset emails and Google sign-in follow the UI language.
+auth.languageCode = i18n.lang;
+i18n.subscribe((lang) => { auth.languageCode = lang; });
 export const db = getFirestore(app);
 
 let analytics = null;

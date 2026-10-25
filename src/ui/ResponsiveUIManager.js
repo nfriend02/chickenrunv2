@@ -2,6 +2,7 @@ import { Characters, Stages, ViewMode } from '../core/GameState.js';
 import { saveSystem } from '../core/SaveSystem.js';
 import { soundSynth } from '../audio/SoundSynth.js';
 import { uxMode } from '../core/UXMode.js';
+import { charText, i18n, stageName, t } from '../core/i18n.js';
 
 const CEREMONY_MS = 3000;
 
@@ -56,10 +57,14 @@ export class ResponsiveUIManager {
     this.titleCharName = document.getElementById('title-char-name');
     this.titleCharImg = document.getElementById('title-char-img');
     this.titleCharHead = document.getElementById('title-char-head');
+    this.titleCharRole = document.getElementById('title-char-role');
+    this.titleCharSkill = document.getElementById('title-char-skill');
     this.currentModeLabel = document.getElementById('current-mode-label');
 
     this.warningTimeout = null;
     this.catAlertTimeout = null;
+    this.viewLabelKey = 'view.landscape';
+    this.lastResult = null;
 
     this.setupEventListeners();
     this.setupCharacterModal();
@@ -67,6 +72,16 @@ export class ResponsiveUIManager {
     this.setupSettingsModal();
     this.updateTitleCharacterDisplay();
     this.checkOrientation();
+    i18n.subscribe(() => this.refreshLanguage());
+  }
+
+  /** Re-renders every piece of text this manager builds in code. */
+  refreshLanguage() {
+    this.setupCharacterModal();
+    this.setupStageModal();
+    this.updateTitleCharacterDisplay();
+    if (this.currentModeLabel) this.currentModeLabel.textContent = t(this.viewLabelKey);
+    if (this.lastResult && !this.resultModal.classList.contains('hidden')) this.showResultModal(...this.lastResult);
   }
 
   setupEventListeners() {
@@ -183,12 +198,13 @@ export class ResponsiveUIManager {
     if (mode === ViewMode.PORTRAIT) {
       body.classList.remove('landscape-mode');
       body.classList.add('portrait-mode');
-      if (this.currentModeLabel) this.currentModeLabel.textContent = '세로 쿼터뷰 (Portrait)';
+      this.viewLabelKey = 'view.portrait';
     } else {
       body.classList.remove('portrait-mode');
       body.classList.add('landscape-mode');
-      if (this.currentModeLabel) this.currentModeLabel.textContent = '가로 횡스크롤 (Landscape)';
+      this.viewLabelKey = 'view.landscape';
     }
+    if (this.currentModeLabel) this.currentModeLabel.textContent = t(this.viewLabelKey);
   }
 
   openModal(modalId) {
@@ -214,15 +230,15 @@ export class ResponsiveUIManager {
       card.innerHTML = `
         <div class="card-left">
           <div class="card-icon" style="width:52px; height:52px; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.3); border-radius:12px; padding:4px;">
-            <img src="${ch.imagePath}" alt="${ch.name}" style="width:100%; height:100%; object-fit:contain;">
+            <img src="${ch.imagePath}" alt="${charText(ch, 'name')}" style="width:100%; height:100%; object-fit:contain;">
           </div>
           <div>
-            <div class="card-name">${ch.name}</div>
-            <div class="card-desc">${ch.title} | ${ch.skill}</div>
+            <div class="card-name">${charText(ch, 'name')}</div>
+            <div class="card-desc">${charText(ch, 'title')} | ${charText(ch, 'skill')}</div>
           </div>
         </div>
         <button class="comic-btn btn-secondary" style="font-size:13px; padding:6px 14px;">
-          ${ch.id === selectedCharId ? '선택됨' : '선택'}
+          ${t(ch.id === selectedCharId ? 'pick.selected' : 'pick.select')}
         </button>
       `;
 
@@ -240,7 +256,9 @@ export class ResponsiveUIManager {
   updateTitleCharacterDisplay() {
     const charId = saveSystem.getSelectedCharacter();
     const ch = Characters.find(c => c.id === charId) || Characters[0];
-    if (this.titleCharName) this.titleCharName.textContent = ch.name;
+    if (this.titleCharName) this.titleCharName.textContent = charText(ch, 'name');
+    if (this.titleCharRole) this.titleCharRole.textContent = charText(ch, 'role');
+    if (this.titleCharSkill) this.titleCharSkill.textContent = t('title.skillTag', { skill: charText(ch, 'skill') });
     if (this.titleCharImg) {
       this.titleCharImg.onerror = () => {
         this.titleCharImg.onerror = null;
@@ -270,15 +288,15 @@ export class ResponsiveUIManager {
       card.innerHTML = `
         <div class="card-left">
           <div class="card-icon" style="width:68px; height:42px; display:flex; align-items:center; justify-content:center; border-radius:8px; overflow:hidden; border:1.5px solid var(--primary-gold);">
-            ${isUnlocked ? `<img src="${st.bgImage}" alt="${st.name}" style="width:100%; height:100%; object-fit:cover;">` : '🔒'}
+            ${isUnlocked ? `<img src="${st.bgImage}" alt="${stageName(st)}" style="width:100%; height:100%; object-fit:cover;">` : '🔒'}
           </div>
           <div>
-            <div class="card-name">${st.name}</div>
-            <div class="card-desc">난이도: ${st.difficulty} | 최고점수: ${highScore.toLocaleString()}</div>
+            <div class="card-name">${stageName(st)}</div>
+            <div class="card-desc">${t('pick.stageDesc', { d: st.difficulty, s: highScore.toLocaleString() })}</div>
           </div>
         </div>
         <button class="comic-btn ${isUnlocked ? 'btn-primary' : 'btn-secondary'}" style="font-size:13px; padding:6px 14px;" ${!isUnlocked ? 'disabled' : ''}>
-          ${isUnlocked ? (isCurrent ? '선택됨' : '플레이') : '잠김'}
+          ${t(isUnlocked ? (isCurrent ? 'pick.selected' : 'pick.play') : 'pick.locked')}
         </button>
       `;
 
@@ -444,7 +462,7 @@ export class ResponsiveUIManager {
     }, 2500);
   }
 
-  showBossChase(text, target = 4, title = '⚡ 고양이 공격 회피:') {
+  showBossChase(text, target = 4, title = t('evade.titleCat')) {
     if (!this.bossBanner) return;
     if (this.bossBannerText) this.bossBannerText.textContent = text;
     this.bossBanner.classList.remove('hidden');
@@ -505,12 +523,12 @@ export class ResponsiveUIManager {
 
   showEvadeBanner(count, target = 4) {
     this.updateEvadeCount(count, target);
-    this.showWarning(`⚡ 회피 성공! (${count}/${target})`);
+    this.showWarning(t('evade.success', { n: count, target }));
   }
 
   /**
-   * Ends the run: a 3-second ceremony (success: "미션 성공" title with radiating stars while the hero
-   * celebrates; failure: the hero's caught scene) and then the result box with the "스코어 보기" button.
+   * Ends the run: a 3-second ceremony (success: mission-complete title with radiating stars while the hero
+   * celebrates; failure: the hero's caught scene) and then the result box with the "View Score" button.
    */
   showMissionResult(isSuccess, evades, target = 4, onShowScoreboard, texts = {}) {
     // Hide active gameplay controls & HUD
@@ -528,19 +546,19 @@ export class ResponsiveUIManager {
     }
 
     if (this.missionTitle) {
-      this.missionTitle.textContent = isSuccess ? '⚡ 미션 성공 ⚡' : '🌧️ 미션 실패 🌧️';
+      this.missionTitle.textContent = t(isSuccess ? 'mission.success' : 'mission.fail');
     }
 
     if (this.missionSubtitle) {
       this.missionSubtitle.textContent = isSuccess
-        ? (texts.success || `늙은 고양이의 공격을 ${target}회 완벽히 회피했습니다!`)
-        : (texts.fail || '늙은 고양이의 공격에 쓰러졌습니다...');
+        ? (texts.success || t('mission.successSub', { n: target }))
+        : (texts.fail || t('mission.failSub'));
     }
 
     if (this.missionStars) {
       this.missionStars.textContent = isSuccess
         ? '🌟'.repeat(target)
-        : `회피 성공: ${evades} / ${target}`;
+        : t('mission.evades', { n: evades, target });
     }
 
     this.clearMissionResult();
@@ -604,9 +622,13 @@ export class ResponsiveUIManager {
   }
 
   showResultModal(isClear, score, maxCombo, feathersLeft, mileageEarned = 0) {
+    this.lastResult = [isClear, score, maxCombo, feathersLeft, mileageEarned];
     const mileageEl = document.getElementById('result-mileage');
     if (mileageEl) {
-      mileageEl.textContent = `+${mileageEarned.toLocaleString()} (누적 ${saveSystem.getMileage().toLocaleString()})`;
+      mileageEl.textContent = t('result.mileageValue', {
+        earned: mileageEarned.toLocaleString(),
+        total: saveSystem.getMileage().toLocaleString()
+      });
     }
     const titleEl = document.getElementById('result-status-title');
     const scoreEl = document.getElementById('result-score');
@@ -622,7 +644,7 @@ export class ResponsiveUIManager {
     if (scoreEl) scoreEl.textContent = score.toLocaleString();
     if (comboEl) comboEl.textContent = `x${maxCombo}`;
     if (feathersEl) {
-      feathersEl.textContent = '🪶'.repeat(Math.max(0, feathersLeft)) || '없음';
+      feathersEl.textContent = '🪶'.repeat(Math.max(0, feathersLeft)) || t('result.none');
     }
 
     if (nextBtn) {

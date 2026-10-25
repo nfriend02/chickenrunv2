@@ -1,3 +1,4 @@
+import { i18n } from './core/i18n.js';
 import { GameManager } from './core/GameManager.js';
 import { AuthUI } from './ui/AuthUI.js';
 import { AccountUI } from './ui/AccountUI.js';
@@ -7,6 +8,7 @@ function startApp() {
   const canvas = document.getElementById('game-canvas');
   if (canvas) {
     window.__CHICKEN_RUN_INITIALIZED__ = true;
+    i18n.apply();
     try {
       const game = new GameManager(canvas);
       window.__CHICKEN_RUN_GAME__ = game;

@@ -1,6 +1,7 @@
 import { GameStateEnum, Characters, Stages } from './GameState.js';
 import { saveSystem } from './SaveSystem.js';
 import { trackEvent } from './firebase.js';
+import { stageName, t } from './i18n.js';
 import { soundSynth } from '../audio/SoundSynth.js';
 import { GameRenderer } from '../renderer/GameRenderer.js';
 import { Player } from '../entities/Player.js';
@@ -69,9 +70,9 @@ export class GameManager {
       this.bossCat.startChase(stageId);
       const hayFinale = this.bossCat.usesHayFinale;
       this.uiManager.showBossChase(
-        hayFinale ? '🚨 늙은 고양이가 헛간 문을 부수고 추격 시작!! 🚨' : '🚨 늙은 심술 고양이 추격 시작!! 🚨',
+        t(hayFinale ? 'boss.chaseHay' : 'boss.chase'),
         this.bossCat.targetEvades,
-        hayFinale ? '🌾 건초더미 회피:' : '⚡ 고양이 공격 회피:'
+        t(hayFinale ? 'evade.titleHay' : 'evade.titleCat')
       );
     };
 
@@ -127,10 +128,10 @@ export class GameManager {
 
   /**
    * Called when the 6-second intro video finishes or is skipped.
-   * Transitions immediately to the Title Screen (첫화면).
+   * Transitions immediately to the Title Screen.
    */
   onIntroCompleted() {
-    console.log('🎬 Intro finished or skipped -> Showing Title Screen (첫화면)');
+    console.log('🎬 Intro finished or skipped -> Showing Title Screen');
     this.state = GameStateEnum.TITLE;
     if (this.uiManager && this.uiManager.titleScreen) {
       this.uiManager.titleScreen.classList.remove('hidden');
@@ -139,7 +140,7 @@ export class GameManager {
   }
 
   /**
-   * Called when "게임 시작 (START)" button is clicked on the Title Screen.
+   * Called when the START button is clicked on the Title Screen.
    * Immediately launches Stage 1 gameplay without waiting or playing videos!
    */
   startGame() {
@@ -174,7 +175,7 @@ export class GameManager {
     this.stageManager.loadStage(this.stageManager.currentStageIndex || 0);
 
     if (this.uiManager) {
-      this.uiManager.showHUD(lives, currentStage.name);
+      this.uiManager.showHUD(lives, stageName(currentStage));
     }
 
     try {
@@ -238,10 +239,10 @@ export class GameManager {
     const earned = saveSystem.addRunMileage(this.scoreManager.score, true);
     trackEvent('stage_clear', { stage: currentStageId, score: this.scoreManager.score, mileage: earned });
 
-    // 3-second victory ceremony, then the "미션 성공" box with the "스코어 보기" button
+    // 3-second victory ceremony, then the mission-complete box with the "View Score" button
     const target = this.bossCat.targetEvades;
     const texts = this.bossCat.usesHayFinale
-      ? { success: `건초더미를 ${target}번 피했더니 늙은 고양이가 건초더미에 처박혔습니다!` }
+      ? { success: t('mission.haySub', { n: target }) }
       : {};
     this.uiManager.showMissionResult(true, target, target, () => {
       this.uiManager.showResultModal(
@@ -264,7 +265,7 @@ export class GameManager {
     this.renderer.setGloomyDefeatFX(true);
     this.bossCat.gloat();
 
-    // 3-second caught scene in the gloomy tint, then the "미션 실패" box with the "스코어 보기" button
+    // 3-second caught scene in the gloomy tint, then the mission-failed box with the "View Score" button
     const stageId = this.stageManager.stageConfig.id;
     saveSystem.setHighScore(stageId, this.scoreManager.score);
     const earned = saveSystem.addRunMileage(this.scoreManager.score, false);

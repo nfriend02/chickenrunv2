@@ -490,7 +490,7 @@ export class GameRenderer {
       branch.geo.attributes.position.needsUpdate = true;
       branch.line.material.color.setHex(colors[Math.floor(Math.random() * colors.length)]);
     });
-    if (Math.random() < 0.6) {
+      if (Math.random() < 0.6) {
       this.emitFeathers(centerPos, 3, 0x00ffff);
       this.emitFeathers(centerPos, 2, 0xffeb3b);
     }

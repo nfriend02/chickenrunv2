@@ -8,13 +8,13 @@ import { ENTITY_SCALE, ROAD_SCALE } from '../core/WorldScale.js';
  * zone obstacles slow the player instead of hurting.
  */
 export const ObstacleDefs = {
-  haystack: { name: '건초더미', image: '/assets/images/fixtures/haystack.png', height: 1.5, halfLen: 0.55, halfWidth: 0.75, behavior: 'static' },
-  fence: { name: '나무 울타리', image: '/assets/images/fixtures/fence.png', height: 1.25, halfLen: 0.3, halfWidth: 1.0, behavior: 'static' },
-  dog: { name: '시골 강아지', image: '/assets/images/npcs/dog.png', anim: ['dog', 'move'], height: 1.25, halfLen: 0.45, halfWidth: 0.5, behavior: 'wander', wanderAmp: 0.35, wanderFreq: 1.4, approach: 1.5 },
-  duck: { name: '오리', image: '/assets/images/npcs/duck.png', height: 1.0, halfLen: 0.35, halfWidth: 0.4, behavior: 'wander', wanderAmp: 0.45, wanderFreq: 0.9, approach: 0.6 },
-  pond: { name: '오리 연못', image: '/assets/stages/stage01/props/duck_pond.webp', height: 1.2, halfLen: 1.1, halfWidth: 1.3, behavior: 'zone', lanes: [-0.45, 0.45] },
-  cow_rushing: { name: '돌진 황소', image: '/assets/images/npcs/cow_rushing.png', anim: ['cow_rushing', 'move'], height: 1.9, halfLen: 0.6, halfWidth: 0.7, behavior: 'rush', rushSpeed: 11, warnTime: 0.9 },
-  popcorn_machine: { name: '뻥튀기 기계', image: '/assets/images/fixtures/popcorn_machine.png', height: 2.0, halfLen: 0.6, halfWidth: 0.8, behavior: 'static' }
+  haystack: { name: 'Haystack', image: '/assets/images/fixtures/haystack.png', height: 1.5, halfLen: 0.55, halfWidth: 0.75, behavior: 'static' },
+  fence: { name: 'Wooden fence', image: '/assets/images/fixtures/fence.png', height: 1.25, halfLen: 0.3, halfWidth: 1.0, behavior: 'static' },
+  dog: { name: 'Farm dog', image: '/assets/images/npcs/dog.png', anim: ['dog', 'move'], height: 1.25, halfLen: 0.45, halfWidth: 0.5, behavior: 'wander', wanderAmp: 0.35, wanderFreq: 1.4, approach: 1.5 },
+  duck: { name: 'Duck', image: '/assets/images/npcs/duck.png', height: 1.0, halfLen: 0.35, halfWidth: 0.4, behavior: 'wander', wanderAmp: 0.45, wanderFreq: 0.9, approach: 0.6 },
+  pond: { name: 'Duck pond', image: '/assets/stages/stage01/props/duck_pond.webp', height: 1.2, halfLen: 1.1, halfWidth: 1.3, behavior: 'zone', lanes: [-0.45, 0.45] },
+  cow_rushing: { name: 'Charging bull', image: '/assets/images/npcs/cow_rushing.png', anim: ['cow_rushing', 'move'], height: 1.9, halfLen: 0.6, halfWidth: 0.7, behavior: 'rush', rushSpeed: 11, warnTime: 0.9 },
+  popcorn_machine: { name: 'Popcorn machine', image: '/assets/images/fixtures/popcorn_machine.png', height: 2.0, halfLen: 0.6, halfWidth: 0.8, behavior: 'static' }
 };
 
 const JUMP_CLEAR_Y = 1.0;
