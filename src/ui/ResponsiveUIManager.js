@@ -54,6 +54,7 @@ export class ResponsiveUIManager {
     // Title Elements
     this.titleCharName = document.getElementById('title-char-name');
     this.titleCharImg = document.getElementById('title-char-img');
+    this.titleCharHead = document.getElementById('title-char-head');
     this.currentModeLabel = document.getElementById('current-mode-label');
 
     this.warningTimeout = null;
@@ -233,8 +234,16 @@ export class ResponsiveUIManager {
     const ch = Characters.find(c => c.id === charId) || Characters[0];
     if (this.titleCharName) this.titleCharName.textContent = ch.name;
     if (this.titleCharImg) {
-      this.titleCharImg.src = ch.imagePath;
+      this.titleCharImg.onerror = () => {
+        this.titleCharImg.onerror = null;
+        this.titleCharImg.src = ch.imagePath;
+      };
+      this.titleCharImg.src = `/assets/images/characters/portraits/${ch.id}.png`;
       this.titleCharImg.style.display = 'block';
+    }
+    if (this.titleCharHead) {
+      this.titleCharHead.src = `/assets/images/characters/portraits/${ch.id}_head.png`;
+      this.titleCharHead.style.display = 'block';
     }
   }
 

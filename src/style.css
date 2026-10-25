@@ -1024,24 +1024,46 @@ button, input, .modal-card, .title-content, .dpad-btn, .action-btn, .opt-btn, .t
   transform: scale(1.02);
 }
 
+/* Portrait circle: the hero's bust is clipped to the circle, but the head may rise above its top edge. */
 .char-avatar-box {
-  width: 70px;
-  height: 70px;
+  position: relative;
+  flex-shrink: 0;
+  width: 84px;
+  height: 84px;
   border-radius: 50%;
   background: radial-gradient(circle, #FFD700 0%, #FF8F00 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
   border: 3px solid #FFF;
   box-shadow: 0 4px 10px rgba(0,0,0,0.5);
 }
 
-.char-avatar-box img {
-  width: 100%;
-  height: 100%;
+/* 84px circle, 3px border: inner radius 39px, centre 80px below the top of this 122px-tall layer.
+   The full bust is clipped inside the rim; a head-only copy is stacked on top and covers the rim. */
+.avatar-pop {
+  position: absolute;
+  left: -3px;
+  bottom: -3px;
+  width: 84px;
+  height: 122px;
+  pointer-events: none;
+}
+
+.avatar-body {
+  -webkit-mask-image: radial-gradient(circle 40px at 50% 80px, #000 97%, transparent 100%);
+  mask-image: radial-gradient(circle 40px at 50% 80px, #000 97%, transparent 100%);
+}
+
+.avatar-pop img {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 104px;
+  height: 104px;
   object-fit: contain;
-  transform: scaleX(-1);
+  transform: translateX(-50%) scaleX(-1);
+}
+
+.avatar-head img {
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.4));
 }
 
 .char-details {
