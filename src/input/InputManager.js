@@ -83,6 +83,7 @@ export class InputManager {
           e.preventDefault();
           e.stopPropagation();
         }
+        if (this.holdingStates[dir] && btn.classList.contains('hover-active')) return;
         this.holdingStates[dir] = true;
         btn.classList.add('hover-active');
 
@@ -99,9 +100,19 @@ export class InputManager {
       };
 
       // Pointer events for instant cross-device touch and mouse support
-      btn.addEventListener('pointerdown', triggerStart);
+      btn.addEventListener('pointerdown', (e) => {
+        // Touch pointers are captured by the pressed button; release so a thumb sliding onto the neighbour switches direction.
+        try { btn.releasePointerCapture(e.pointerId); } catch { /* not captured */ }
+        triggerStart(e);
+      });
       btn.addEventListener('pointerup', triggerEnd);
       btn.addEventListener('pointercancel', triggerEnd);
+      btn.addEventListener('pointerenter', (e) => {
+        if (e.pointerType !== 'mouse' && e.buttons) triggerStart(e);
+      });
+      btn.addEventListener('pointerleave', (e) => {
+        if (e.pointerType !== 'mouse') triggerEnd(e);
+      });
 
       // Mouse Hover (Desktop: moves instantly upon hovering without click!)
       btn.addEventListener('mouseenter', () => {
