@@ -6,3 +6,6 @@ raw_videos/
 
 # Firebase CLI deploy cache
 .firebase/
+
+# Build output (Vercel builds from source; Firebase deploys the local build)
+dist/
