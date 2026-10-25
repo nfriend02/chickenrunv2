@@ -1,64 +1,83 @@
 import {
   GoogleAuthProvider,
-  RecaptchaVerifier,
   createUserWithEmailAndPassword,
   getRedirectResult,
   sendPasswordResetEmail,
   signInAnonymously,
   signInWithEmailAndPassword,
-  signInWithPhoneNumber,
   signInWithPopup,
   signInWithRedirect
 } from 'firebase/auth';
 import { auth } from '../core/firebase.js';
-import { cloudSave, displayNameOf } from '../core/CloudSave.js';
+import { cloudSave, formatPhone, phoneLoginEmail } from '../core/CloudSave.js';
 
 const ERROR_TEXT = {
-  'auth/invalid-email': '이메일 형식이 올바르지 않습니다.',
+  'auth/invalid-email': '이메일 형식이 올바르지 않아요.',
   'auth/missing-password': '비밀번호를 입력해 주세요.',
-  'auth/weak-password': '비밀번호는 6자 이상이어야 합니다.',
-  'auth/email-already-in-use': '이미 가입된 이메일입니다. 로그인해 주세요.',
-  'auth/invalid-credential': '이메일 또는 비밀번호가 맞지 않습니다.',
-  'auth/wrong-password': '이메일 또는 비밀번호가 맞지 않습니다.',
-  'auth/user-not-found': '가입되지 않은 이메일입니다.',
-  'auth/too-many-requests': '시도가 너무 많습니다. 잠시 후 다시 시도해 주세요.',
-  'auth/invalid-phone-number': '휴대폰 번호 형식이 올바르지 않습니다.',
-  'auth/invalid-verification-code': '인증번호가 맞지 않습니다.',
-  'auth/code-expired': '인증번호가 만료되었습니다. 다시 받아 주세요.',
-  'auth/quota-exceeded': '오늘 보낼 수 있는 인증 문자 수를 넘었습니다.',
-  'auth/popup-closed-by-user': '로그인 창이 닫혔습니다.',
-  'auth/cancelled-popup-request': '로그인 창이 닫혔습니다.',
-  'auth/unauthorized-domain': '이 주소에서는 로그인할 수 없습니다. (Firebase 승인 도메인 확인 필요)',
-  'auth/operation-not-allowed': '이 로그인 방법이 Firebase에서 꺼져 있습니다.',
+  'auth/weak-password': '비밀번호는 6자 이상이어야 해요.',
+  'auth/email-already-in-use': '이미 가입된 이메일이에요. 로그인해 주세요.',
+  'auth/invalid-credential': '이메일 또는 비밀번호가 맞지 않아요.',
+  'auth/wrong-password': '이메일 또는 비밀번호가 맞지 않아요.',
+  'auth/user-not-found': '가입되지 않은 이메일이에요.',
+  'auth/too-many-requests': '시도가 너무 많아요. 잠시 후 다시 해 주세요.',
+  'auth/popup-closed-by-user': '로그인 창이 닫혔어요.',
+  'auth/cancelled-popup-request': '로그인 창이 닫혔어요.',
+  'auth/unauthorized-domain': '이 주소에서는 로그인할 수 없어요. (Firebase 승인 도메인 확인 필요)',
+  'auth/operation-not-allowed': '이 로그인 방법이 Firebase에서 꺼져 있어요.',
+  'auth/admin-restricted-operation': '이 로그인 방법이 Firebase에서 꺼져 있어요.',
   'auth/network-request-failed': '네트워크 연결을 확인해 주세요.'
 };
 
-function errorText(e) {
-  return ERROR_TEXT[e?.code] || `로그인에 실패했습니다. (${e?.code || e?.message || e})`;
+const PHONE_ERROR_TEXT = {
+  'auth/email-already-in-use': '이미 가입된 휴대폰번호예요. 로그인해 주세요.',
+  'auth/invalid-credential': '휴대폰번호 또는 비밀번호가 맞지 않아요.',
+  'auth/wrong-password': '휴대폰번호 또는 비밀번호가 맞지 않아요.',
+  'auth/user-not-found': '가입되지 않은 휴대폰번호예요.',
+  'auth/invalid-email': '휴대폰번호 형식이 올바르지 않아요.'
+};
+
+class InputError extends Error {}
+
+/** Country code and number, ignoring '+', '-' and spaces; a leading trunk 0 (010...) is dropped. */
+function readPhone(form) {
+  const cc = form.cc.value.replace(/[^\d]/g, '');
+  let number = form.phone.value.replace(/[\s-]/g, '');
+  if (!/^\d{1,4}$/.test(cc)) throw new InputError('국가번호를 확인해 주세요. (예: +82)');
+  if (!/^\d+$/.test(number)) throw new InputError('휴대폰번호는 숫자만 입력해 주세요.');
+  number = number.replace(/^0+/, '');
+  if (number.length < 7 || number.length > 13) throw new InputError('휴대폰번호를 확인해 주세요. (예: 10 1234 5678)');
+  return { cc, number };
 }
 
-/** Korean mobile numbers: 010-1234-5678 -> +821012345678. Numbers already starting with + are kept. */
-function toE164(raw) {
-  const s = raw.replace(/[^\d+]/g, '');
-  if (s.startsWith('+')) return s;
-  if (s.startsWith('0')) return `+82${s.slice(1)}`;
-  return `+82${s}`;
+function readNewPassword(form) {
+  const pw = form.password.value;
+  if (pw.length < 6) throw new InputError('비밀번호는 6자 이상이어야 해요.');
+  if (pw !== form.password2.value) throw new InputError('비밀번호 확인이 일치하지 않아요.');
+  return pw;
+}
+
+function readEmail(form) {
+  const email = form.email.value.trim();
+  if (!email) throw new InputError('이메일을 입력해 주세요.');
+  return email;
+}
+
+export function readNickname(value) {
+  const nick = value.trim().replace(/\s+/g, ' ');
+  if (nick.length < 2 || nick.length > 12) throw new InputError('별명은 2~12자로 정해 주세요.');
+  return nick;
 }
 
 /**
- * Login overlay shown above the title screen while nobody is signed in,
- * plus the account bar (name, mileage, logout) on the title screen.
+ * Login / sign-up overlay. It stays above the title screen until the player is signed in
+ * (guests also need a nickname), then the title screen underneath is ready to play.
  */
 export class AuthUI {
   constructor() {
     this.screen = document.getElementById('login-screen');
     this.message = document.getElementById('login-message');
-    this.accountBar = document.getElementById('account-bar');
-    this.accountName = document.getElementById('account-name');
-    this.accountMileage = document.getElementById('account-mileage');
-    this.confirmation = null;
-    this.recaptcha = null;
     this.busy = false;
+    this.view = 'menu';
 
     this.bindEvents();
     getRedirectResult(auth).catch((e) => this.showError(e));
@@ -74,44 +93,33 @@ export class AuthUI {
         return;
       }
       const btn = e.target.closest('[data-action]');
-      if (btn && btn.type !== 'submit') {
+      if (btn) {
         e.preventDefault();
-        this.run(btn.dataset.action);
+        this.run(btn.dataset.action, btn.closest('form'));
       }
     });
-    document.getElementById('email-form').addEventListener('submit', (e) => {
-      e.preventDefault();
-      this.run('email-signin');
-    });
-    document.getElementById('phone-form').addEventListener('submit', (e) => {
-      e.preventDefault();
-      this.run('phone-send');
-    });
-    document.getElementById('logout-btn').addEventListener('click', () => {
-      cloudSave.logout().catch((e) => console.warn('Logout failed', e));
+    this.screen.querySelectorAll('form[data-submit]').forEach((form) => {
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        this.run(form.dataset.submit, form);
+      });
     });
   }
 
-  render({ user, authResolved, syncing, mileage }) {
-    const signedIn = !!user;
-    this.screen.classList.toggle('hidden', !authResolved || signedIn);
-    this.accountBar.classList.toggle('hidden', !signedIn);
-    if (signedIn) {
-      this.accountName.textContent = `👤 ${displayNameOf(user)}`;
-      this.accountMileage.textContent = syncing ? '…' : mileage.toLocaleString();
-    } else if (authResolved) {
-      this.showView('menu');
-    }
+  render({ user, authResolved, needsNickname }) {
+    const show = authResolved && (!user || needsNickname);
+    this.screen.classList.toggle('hidden', !show);
+    if (show && needsNickname && this.view !== 'guest') this.showView('guest');
+    if (!show) this.view = null;
+    else if (!this.view) this.showView('menu');
   }
 
   showView(name) {
+    this.view = name;
     this.screen.querySelectorAll('.login-view').forEach(v => v.classList.toggle('hidden', v.dataset.view !== name));
-    if (name === 'phone') this.showPhoneStep('number');
     this.setMessage('');
-  }
-
-  showPhoneStep(step) {
-    this.screen.querySelectorAll('.phone-step').forEach(s => s.classList.toggle('hidden', s.dataset.step !== step));
+    const first = this.screen.querySelector(`.login-view[data-view="${name}"] input:not(.cc-input)`);
+    if (first && window.matchMedia('(hover: hover)').matches) first.focus();
   }
 
   setMessage(text, ok = false) {
@@ -119,30 +127,31 @@ export class AuthUI {
     this.message.classList.toggle('ok', ok);
   }
 
-  showError(e) {
+  showError(e, phone = false) {
+    if (e instanceof InputError) {
+      this.setMessage(e.message);
+      return;
+    }
     console.warn('Auth error', e);
-    this.setMessage(errorText(e));
+    const text = (phone && PHONE_ERROR_TEXT[e?.code]) || ERROR_TEXT[e?.code];
+    this.setMessage(text || `처리하지 못했어요. (${e?.code || e?.message || e})`);
   }
 
-  async run(action) {
+  async run(action, form) {
     if (this.busy) return;
     this.busy = true;
     this.screen.classList.add('busy');
+    this.setMessage('');
     try {
-      await this.actions[action].call(this);
+      await this.actions[action].call(this, form);
     } catch (e) {
-      this.showError(e);
+      cloudSave.pendingAccountId = null;
+      cloudSave.pendingNickname = null;
+      this.showError(e, action.includes('phone'));
     } finally {
       this.busy = false;
       this.screen.classList.remove('busy');
     }
-  }
-
-  emailValues() {
-    return {
-      email: document.getElementById('login-email').value.trim(),
-      password: document.getElementById('login-password').value
-    };
   }
 
   actions = {
@@ -159,64 +168,47 @@ export class AuthUI {
       }
     },
 
-    async guest() {
-      await signInAnonymously(auth);
+    async 'email-login'(form) {
+      const email = readEmail(form);
+      if (!form.password.value) throw new InputError('비밀번호를 입력해 주세요.');
+      await signInWithEmailAndPassword(auth, email, form.password.value);
     },
 
-    async 'email-signin'() {
-      const { email, password } = this.emailValues();
-      await signInWithEmailAndPassword(auth, email, password);
-    },
-
-    async 'email-signup'() {
-      const { email, password } = this.emailValues();
-      await createUserWithEmailAndPassword(auth, email, password);
-    },
-
-    async 'email-reset'() {
-      const { email } = this.emailValues();
-      if (!email) {
-        this.setMessage('비밀번호를 재설정할 이메일을 먼저 입력해 주세요.');
-        return;
-      }
+    async 'email-reset'(form) {
+      const email = form.email.value.trim();
+      if (!email) throw new InputError('비밀번호를 재설정할 이메일을 먼저 입력해 주세요.');
       await sendPasswordResetEmail(auth, email);
-      this.setMessage(`${email} 로 비밀번호 재설정 메일을 보냈습니다.`, true);
+      this.setMessage(`${email} 로 비밀번호 재설정 메일을 보냈어요.`, true);
     },
 
-    async 'phone-send'() {
-      const raw = document.getElementById('login-phone').value;
-      if (!raw.trim()) {
-        this.setMessage('휴대폰 번호를 입력해 주세요.');
+    async 'phone-login'(form) {
+      const { cc, number } = readPhone(form);
+      if (!form.password.value) throw new InputError('비밀번호를 입력해 주세요.');
+      await signInWithEmailAndPassword(auth, phoneLoginEmail(cc, number), form.password.value);
+    },
+
+    async 'signup-email'(form) {
+      const email = readEmail(form);
+      const pw = readNewPassword(form);
+      cloudSave.pendingAccountId = email;
+      await createUserWithEmailAndPassword(auth, email, pw);
+    },
+
+    async 'signup-phone'(form) {
+      const { cc, number } = readPhone(form);
+      const pw = readNewPassword(form);
+      cloudSave.pendingAccountId = formatPhone(cc, number);
+      await createUserWithEmailAndPassword(auth, phoneLoginEmail(cc, number), pw);
+    },
+
+    async guest(form) {
+      const nickname = readNickname(form.nickname.value);
+      if (auth.currentUser?.isAnonymous) {
+        await cloudSave.setNickname(nickname);
         return;
       }
-      if (!this.recaptcha) {
-        this.recaptcha = new RecaptchaVerifier(auth, 'recaptcha-container', { size: 'invisible' });
-      }
-      try {
-        this.confirmation = await signInWithPhoneNumber(auth, toE164(raw), this.recaptcha);
-      } catch (e) {
-        this.recaptcha.clear();
-        this.recaptcha = null;
-        throw e;
-      }
-      this.showPhoneStep('code');
-      this.setMessage('문자로 받은 인증번호 6자리를 입력해 주세요.', true);
-      document.getElementById('login-code').focus();
-    },
-
-    async 'phone-verify'() {
-      const code = document.getElementById('login-code').value.trim();
-      if (!this.confirmation || code.length < 6) {
-        this.setMessage('인증번호 6자리를 입력해 주세요.');
-        return;
-      }
-      await this.confirmation.confirm(code);
-    },
-
-    async 'phone-retry'() {
-      this.confirmation = null;
-      this.showPhoneStep('number');
-      this.setMessage('');
+      cloudSave.pendingNickname = nickname;
+      await signInAnonymously(auth);
     }
   };
 }

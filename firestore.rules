@@ -12,11 +12,15 @@ service cloud.firestore {
       function validProgress() {
         let d = request.resource.data;
         return d.keys().hasOnly(['mileage', 'totalRuns', 'highScores', 'selectedCharacter', 'featherLives',
-                                 'bgmVolume', 'sfxVolume', 'displayName', 'provider', 'createdAt', 'updatedAt'])
+                                 'bgmVolume', 'sfxVolume', 'displayName', 'provider', 'createdAt', 'updatedAt',
+                                 'nickname', 'accountId', 'expireAt'])
           && d.mileage is int && d.mileage >= 0
           && d.totalRuns is int && d.totalRuns >= 0
           && d.highScores is map
-          && d.displayName is string && d.displayName.size() <= 120;
+          && d.displayName is string && d.displayName.size() <= 120
+          && (!('nickname' in d) || (d.nickname is string && d.nickname.size() <= 12))
+          && (!('accountId' in d) || (d.accountId is string && d.accountId.size() <= 120))
+          && (!('expireAt' in d) || d.expireAt is timestamp);
       }
 
       allow read: if isOwner();

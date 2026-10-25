@@ -1,6 +1,7 @@
 import { Characters, Stages, ViewMode } from '../core/GameState.js';
 import { saveSystem } from '../core/SaveSystem.js';
 import { soundSynth } from '../audio/SoundSynth.js';
+import { uxMode } from '../core/UXMode.js';
 
 const CEREMONY_MS = 3000;
 
@@ -151,13 +152,20 @@ export class ResponsiveUIManager {
       this.toggleViewMode();
     });
 
-    window.addEventListener('resize', () => this.checkOrientation());
+    uxMode.subscribe((state, prev) => this.applyUX(state, prev));
+  }
+
+  /** Game camera follows the device orientation; a rotation mid-run switches the view instantly. */
+  applyUX(state, prev) {
+    if (!prev || prev.orientation !== state.orientation) {
+      this.setViewMode(state.orientation === 'portrait' ? ViewMode.PORTRAIT : ViewMode.LANDSCAPE);
+    } else if (this.gameManager.renderer) {
+      this.gameManager.renderer.onWindowResize();
+    }
   }
 
   checkOrientation() {
-    const isPortrait = window.innerHeight > window.innerWidth;
-    const mode = isPortrait ? ViewMode.PORTRAIT : ViewMode.LANDSCAPE;
-    this.setViewMode(mode);
+    this.applyUX(uxMode.get(), null);
   }
 
   toggleViewMode() {
@@ -344,7 +352,7 @@ export class ResponsiveUIManager {
     }
     if (this.hud) {
       this.hud.classList.remove('hidden');
-      this.hud.style.display = 'flex';
+      this.hud.style.display = '';
     }
     if (this.controlsContainer) {
       this.controlsContainer.classList.remove('hidden');

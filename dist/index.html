@@ -125,8 +125,8 @@
       }
     }, 7500);
   </script>
-  <script type="module" crossorigin src="/assets/index-npY93ulh.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-ByF7ogBe.css">
+  <script type="module" crossorigin src="/assets/index-D2sPZB1W.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-BhjcaKoM.css">
 </head>
 <body class="landscape-mode">
   <div id="game-app">
@@ -277,11 +277,6 @@
       <!-- Main Title Screen (Shown after intro finishes or is skipped) -->
       <section id="title-screen" class="title-screen hidden">
         <div class="title-bg-glow"></div>
-        <div id="account-bar" class="account-bar hidden">
-          <span class="account-name" id="account-name">게스트</span>
-          <span class="account-mileage">🪙 <strong id="account-mileage">0</strong> 마일리지</span>
-          <button id="logout-btn" class="account-logout" type="button">로그아웃</button>
-        </div>
         <div class="title-content">
           <div class="title-logo-container">
             <div class="logo-subtitle">COMIC & FUNNY 3D RUNNING ACTION</div>
@@ -334,45 +329,125 @@
         </div>
       </section>
 
-      <!-- Login Screen (over the title until the player signs in) -->
+      <!-- Login / Sign-up Screen (over the title until the player signs in) -->
       <section id="login-screen" class="login-screen hidden">
-        <div class="login-card">
-          <h1 class="login-logo">🐔 CHICKEN RUN <span class="logo-v2">V2</span></h1>
-          <p class="login-desc">로그인하면 마일리지와 기록이 저장됩니다</p>
+        <div class="farm-sign">
+          <div class="farm-sign-ribbon">🐔 CHICKEN RUN <span class="logo-v2">V2</span></div>
 
+          <!-- Login menu -->
           <div class="login-view" data-view="menu">
-            <button class="login-btn login-google" data-action="google" type="button"><span class="login-ico">G</span> Google로 로그인</button>
-            <button class="login-btn login-email" data-goto="email" type="button"><span class="login-ico">✉️</span> 이메일로 로그인</button>
-            <button class="login-btn login-phone" data-goto="phone" type="button"><span class="login-ico">📱</span> 전화번호로 로그인</button>
-            <button class="login-btn login-guest" data-action="guest" type="button"><span class="login-ico">🐣</span> 게스트로 시작</button>
+            <h2 class="sign-title">로그인</h2>
+            <p class="sign-sub">로그인하면 마일리지와 기록이 저장돼요</p>
+            <div class="sign-btn-grid">
+              <button class="farm-btn farm-btn-google" data-action="google" type="button"><span class="farm-btn-ico g-ico">G</span>Google로 로그인</button>
+              <button class="farm-btn farm-btn-wood" data-goto="email-login" type="button"><span class="farm-btn-ico">✉️</span>이메일로 로그인</button>
+              <button class="farm-btn farm-btn-wood" data-goto="phone-login" type="button"><span class="farm-btn-ico">📱</span>휴대폰번호로 로그인</button>
+              <button class="farm-btn farm-btn-green" data-goto="guest" type="button"><span class="farm-btn-ico">🐣</span>게스트로 시작</button>
+            </div>
+            <button class="sign-link sign-link-strong" data-goto="signup" type="button">처음이면 <b>회원가입</b> ▶</button>
           </div>
 
-          <form class="login-view hidden" data-view="email" id="email-form" novalidate>
-            <input class="login-input" id="login-email" type="email" placeholder="이메일" autocomplete="email" required>
-            <input class="login-input" id="login-password" type="password" placeholder="비밀번호 (6자 이상)" autocomplete="current-password" required>
-            <button class="login-btn login-submit" type="submit" data-action="email-signin">로그인</button>
-            <button class="login-btn login-alt" type="button" data-action="email-signup">새 계정 만들기</button>
-            <button class="login-link" type="button" data-action="email-reset">비밀번호를 잊으셨나요?</button>
-            <button class="login-link" type="button" data-goto="menu">← 다른 방법으로 로그인</button>
+          <!-- Email login -->
+          <form class="login-view hidden" data-view="email-login" data-submit="email-login" novalidate>
+            <h2 class="sign-title">이메일로 로그인</h2>
+            <input class="farm-input" name="email" type="email" placeholder="이메일" autocomplete="email">
+            <input class="farm-input" name="password" type="password" placeholder="비밀번호" autocomplete="current-password">
+            <button class="farm-btn farm-btn-orange" type="submit">로그인</button>
+            <button class="sign-link" type="button" data-action="email-reset">비밀번호를 잊으셨나요?</button>
+            <button class="sign-link" type="button" data-goto="menu">◀ 다른 방법으로 로그인</button>
           </form>
 
-          <form class="login-view hidden" data-view="phone" id="phone-form" novalidate>
-            <div class="phone-step" data-step="number">
-              <input class="login-input" id="login-phone" type="tel" placeholder="휴대폰 번호 (010-1234-5678)" autocomplete="tel" required>
-              <button class="login-btn login-submit" type="submit" data-action="phone-send">인증번호 받기</button>
+          <!-- Phone login -->
+          <form class="login-view hidden" data-view="phone-login" data-submit="phone-login" novalidate>
+            <h2 class="sign-title">휴대폰번호로 로그인</h2>
+            <div class="phone-row">
+              <input class="farm-input cc-input" name="cc" type="tel" value="+82" aria-label="국가번호" autocomplete="tel-country-code">
+              <input class="farm-input" name="phone" type="tel" placeholder="10 1234 5678" aria-label="휴대폰번호" autocomplete="tel-national">
             </div>
-            <div class="phone-step hidden" data-step="code">
-              <input class="login-input" id="login-code" type="text" inputmode="numeric" maxlength="6" placeholder="인증번호 6자리" autocomplete="one-time-code">
-              <button class="login-btn login-submit" type="button" data-action="phone-verify">확인</button>
-              <button class="login-link" type="button" data-action="phone-retry">번호 다시 입력</button>
-            </div>
-            <button class="login-link" type="button" data-goto="menu">← 다른 방법으로 로그인</button>
+            <input class="farm-input" name="password" type="password" placeholder="비밀번호" autocomplete="current-password">
+            <button class="farm-btn farm-btn-orange" type="submit">로그인</button>
+            <button class="sign-link" type="button" data-goto="menu">◀ 다른 방법으로 로그인</button>
           </form>
 
-          <p class="login-message" id="login-message" role="status"></p>
-          <div id="recaptcha-container"></div>
+          <!-- Sign-up menu -->
+          <div class="login-view hidden" data-view="signup">
+            <h2 class="sign-title">회원가입</h2>
+            <p class="sign-sub">가입하면 마일리지와 기록이 계속 보관돼요</p>
+            <div class="sign-btn-grid sign-btn-grid-2">
+              <button class="farm-btn farm-btn-orange" data-goto="signup-email" type="button"><span class="farm-btn-ico">✉️</span>이메일 회원가입</button>
+              <button class="farm-btn farm-btn-orange" data-goto="signup-phone" type="button"><span class="farm-btn-ico">📱</span>휴대폰번호 회원가입</button>
+            </div>
+            <button class="sign-link" type="button" data-goto="menu">◀ 이미 계정이 있어요 (로그인)</button>
+          </div>
+
+          <!-- Email sign-up -->
+          <form class="login-view hidden" data-view="signup-email" data-submit="signup-email" novalidate>
+            <h2 class="sign-title">이메일 회원가입</h2>
+            <input class="farm-input" name="email" type="email" placeholder="이메일" autocomplete="email">
+            <input class="farm-input" name="password" type="password" placeholder="비밀번호 (6자 이상)" autocomplete="new-password">
+            <input class="farm-input" name="password2" type="password" placeholder="비밀번호 확인" autocomplete="new-password">
+            <button class="farm-btn farm-btn-green" type="submit">가입하기</button>
+            <button class="sign-link" type="button" data-goto="signup">◀ 가입 방법 다시 고르기</button>
+          </form>
+
+          <!-- Phone sign-up -->
+          <form class="login-view hidden" data-view="signup-phone" data-submit="signup-phone" novalidate>
+            <h2 class="sign-title">휴대폰번호 회원가입</h2>
+            <div class="phone-row">
+              <input class="farm-input cc-input" name="cc" type="tel" value="+82" aria-label="국가번호" autocomplete="tel-country-code">
+              <input class="farm-input" name="phone" type="tel" placeholder="10 1234 5678" aria-label="휴대폰번호" autocomplete="tel-national">
+            </div>
+            <input class="farm-input" name="password" type="password" placeholder="비밀번호 (6자 이상)" autocomplete="new-password">
+            <input class="farm-input" name="password2" type="password" placeholder="비밀번호 확인" autocomplete="new-password">
+            <button class="farm-btn farm-btn-green" type="submit">가입하기</button>
+            <button class="sign-link" type="button" data-goto="signup">◀ 가입 방법 다시 고르기</button>
+          </form>
+
+          <!-- Guest nickname -->
+          <form class="login-view hidden" data-view="guest" data-submit="guest" novalidate>
+            <h2 class="sign-title">게스트 별명 정하기</h2>
+            <p class="sign-sub">게임 기록과 마일리지는 이 별명으로 저장돼요</p>
+            <input class="farm-input" name="nickname" type="text" maxlength="12" placeholder="별명 (2~12자)" autocomplete="nickname">
+            <button class="farm-btn farm-btn-green" type="submit">🐣 이 별명으로 시작</button>
+            <p class="sign-note">게스트는 로그아웃하면 별명과 마일리지를 다시 불러올 수 없어요.</p>
+            <button class="sign-link" type="button" data-goto="menu">◀ 다른 방법으로 로그인</button>
+          </form>
+
+          <p class="sign-message" id="login-message" role="status"></p>
         </div>
       </section>
+
+      <!-- Account bar: top-right on the title, settings and score screens once signed in -->
+      <div id="account-bar" class="account-bar hidden">
+        <div class="account-chip">
+          <span class="account-name" id="account-name">게스트</span>
+          <span class="account-mileage">🪙 <strong id="account-mileage">0</strong></span>
+        </div>
+        <button id="mypage-btn" class="account-btn account-btn-mypage" type="button">🐔 마이페이지</button>
+        <button id="logout-btn" class="account-btn account-btn-logout" type="button">로그아웃</button>
+      </div>
+
+      <!-- My Page -->
+      <div id="mypage-modal" class="modal-overlay hidden">
+        <div class="modal-card farm-panel mypage-card">
+          <div class="modal-header">
+            <h2>🐔 마이페이지</h2>
+            <button class="modal-close-btn" data-close="mypage-modal">✖</button>
+          </div>
+          <div id="mypage-body"></div>
+        </div>
+      </div>
+
+      <!-- Small confirm dialog (logout etc.) -->
+      <div id="confirm-modal" class="modal-overlay hidden">
+        <div class="modal-card farm-panel confirm-card">
+          <p id="confirm-text"></p>
+          <div class="confirm-actions">
+            <button id="confirm-no" class="farm-btn farm-btn-wood" type="button">취소</button>
+            <button id="confirm-yes" class="farm-btn farm-btn-orange" type="button">확인</button>
+          </div>
+        </div>
+      </div>
 
       <!-- Character Select Modal -->
       <div id="char-modal" class="modal-overlay hidden">
