@@ -41,7 +41,6 @@ export const STRINGS = {
   'cat.alertDefault': { ko: '고양이 하단 급습! JUMP 버튼으로 회피하세요!', en: 'Cat attack from below! Dodge with JUMP!', ja: 'ネコが下から奇襲！JUMPボタンで回避しよう！' },
 
   // Mission result
-  'ceremony.success': { ko: '⭐ 미션 성공! ⭐', en: '⭐ Mission Complete! ⭐', ja: '⭐ ミッション成功！ ⭐' },
   'mission.success': { ko: '⚡ 미션 성공 ⚡', en: '⚡ Mission Complete ⚡', ja: '⚡ ミッション成功 ⚡' },
   'mission.fail': { ko: '🌧️ 미션 실패 🌧️', en: '🌧️ Mission Failed 🌧️', ja: '🌧️ ミッション失敗 🌧️' },
   'mission.successSub': { ko: '늙은 고양이의 공격을 {n}회 완벽히 회피했습니다!', en: 'You dodged the old cat {n} times!', ja: '年寄りネコの攻撃を{n}回かんぺきに回避しました！' },

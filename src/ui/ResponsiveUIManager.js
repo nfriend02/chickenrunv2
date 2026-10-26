@@ -44,8 +44,6 @@ export class ResponsiveUIManager {
     this.missionScoreBtn = document.getElementById('mission-score-btn');
     this.missionCeremony = document.getElementById('mission-ceremony');
     this.ceremonySparkles = document.getElementById('ceremony-sparkles');
-    this.missionTimer = null;
-
     // Modals & Screens
     this.titleScreen = document.getElementById('title-screen');
     this.charModal = document.getElementById('char-modal');
@@ -63,8 +61,11 @@ export class ResponsiveUIManager {
     this.titleCharSkill = document.getElementById('title-char-skill');
     this.currentModeLabel = document.getElementById('current-mode-label');
 
-    this.warningTimeout = null;
-    this.catAlertTimeout = null;
+    this.flyToLeft = true;
+    this.lastFlyText = null;
+    this.lastFlyAt = 0;
+    this.missionDelay = null;
+    this.missionReveal = null;
     this.viewLabelKey = 'view.landscape';
     this.lastResult = null;
 
@@ -140,9 +141,10 @@ export class ResponsiveUIManager {
       this.gameManager.toggleFrozen();
     });
     cloudSave.subscribe((s) => {
+      const wasAdmin = this.isAdmin;
       this.isAdmin = !!s.isAdmin;
       this.freezeBtn.classList.toggle('admin-visible', this.isAdmin);
-      if (!this.isAdmin) this.gameManager.setFrozen?.(false);
+      if (wasAdmin && !this.isAdmin) this.gameManager.setFrozen?.(false);
     });
 
     // Result Modal Actions
@@ -363,6 +365,7 @@ export class ResponsiveUIManager {
 
   showHUD(feathersCount, stageName) {
     this.clearMissionResult();
+    this.clearFlyingMessages();
     if (this.titleScreen) {
       this.titleScreen.classList.add('hidden');
       this.titleScreen.style.display = 'none';
@@ -396,6 +399,7 @@ export class ResponsiveUIManager {
 
   hideHUD() {
     this.clearMissionResult();
+    this.clearFlyingMessages();
     if (this.hud) this.hud.classList.add('hidden');
     if (this.controlsContainer) this.controlsContainer.classList.add('hidden');
     if (this.warningBanner) this.warningBanner.classList.add('hidden');
@@ -459,30 +463,50 @@ export class ResponsiveUIManager {
     }
   }
 
+  /**
+   * In-game messages never sit on the play area: each one is a copy of its (always hidden) banner template
+   * that holds for 0.5 s, then shrinks and drifts off toward the top-left or top-right corner, alternating,
+   * and is fully off screen after 3 s (CSS .fly-msg). Pure CSS timing, so the admin freeze holds it too.
+   */
+  flyMessage(template, textEl, text) {
+    if (!template) return;
+    const now = performance.now();
+    if (text === this.lastFlyText && now - this.lastFlyAt < 400) return;
+    this.lastFlyText = text;
+    this.lastFlyAt = now;
+
+    if (textEl) textEl.textContent = text;
+    const msg = template.cloneNode(true);
+    msg.removeAttribute('id');
+    msg.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
+    msg.querySelectorAll('[data-i18n]').forEach(el => el.removeAttribute('data-i18n'));
+    msg.classList.remove('hidden');
+    msg.style.display = '';
+    msg.classList.add('fly-msg', this.flyToLeft ? 'fly-left' : 'fly-right');
+    msg.setAttribute('aria-live', 'polite');
+    this.flyToLeft = !this.flyToLeft;
+    msg.addEventListener('animationend', (e) => {
+      if (e.target === msg) msg.remove();
+    });
+    template.parentNode.appendChild(msg);
+  }
+
+  clearFlyingMessages() {
+    document.querySelectorAll('.fly-msg').forEach(el => el.remove());
+    this.flyToLeft = true;
+    this.lastFlyText = null;
+  }
+
   showWarning(text) {
-    if (!this.warningBanner) return;
-    if (this.warningTimeout) clearTimeout(this.warningTimeout);
-
-    if (this.warningText) this.warningText.textContent = text;
-    this.warningBanner.classList.remove('hidden');
-
-    this.warningTimeout = setTimeout(() => {
-      this.warningBanner.classList.add('hidden');
-    }, 2500);
+    this.flyMessage(this.warningBanner, this.warningText, text);
   }
 
   showBossChase(text, target = 4, title = t('evade.titleCat')) {
-    if (!this.bossBanner) return;
-    if (this.bossBannerText) this.bossBannerText.textContent = text;
-    this.bossBanner.classList.remove('hidden');
+    this.flyMessage(this.bossBanner, this.bossBannerText, text);
 
     const titleEl = this.catEvadeHud && this.catEvadeHud.querySelector('.evade-title');
     if (titleEl) titleEl.textContent = title;
     this.showCatEvadeHUD(true, target);
-
-    setTimeout(() => {
-      this.bossBanner.classList.add('hidden');
-    }, 3500);
   }
 
   showCatEvadeHUD(show = true, target = 4) {
@@ -518,16 +542,7 @@ export class ResponsiveUIManager {
   }
 
   showCatAlert(text) {
-    if (!this.catAttackAlert) return;
-    if (this.catAlertText) this.catAlertText.textContent = text;
-    this.catAttackAlert.classList.remove('hidden');
-    this.catAttackAlert.style.display = 'flex';
-
-    if (this.catAlertTimeout) clearTimeout(this.catAlertTimeout);
-    this.catAlertTimeout = setTimeout(() => {
-      this.catAttackAlert.classList.add('hidden');
-      this.catAttackAlert.style.display = 'none';
-    }, 1800);
+    this.flyMessage(this.catAttackAlert, this.catAlertText, text);
   }
 
   showEvadeBanner(count, target = 4) {
@@ -573,9 +588,11 @@ export class ResponsiveUIManager {
     this.clearMissionResult();
     if (isSuccess) this.showCeremony();
 
-    // The hero's victory / caught scene plays for CEREMONY_MS before the box and button appear.
-    this.missionTimer = setTimeout(() => {
-      this.missionTimer = null;
+    // The ending scene (hero's victory / caught scene) plays for CEREMONY_MS, with no text over it, before the box
+    // and button appear. Counted in tick() so the admin freeze holds the countdown too.
+    this.missionDelay = CEREMONY_MS / 1000;
+    this.missionDelayStarted = false;
+    this.missionReveal = () => {
       this.hideCeremony();
       this.missionResultContainer.classList.remove('hidden');
       this.missionResultContainer.style.display = 'flex';
@@ -588,7 +605,23 @@ export class ResponsiveUIManager {
           if (onShowScoreboard) onShowScoreboard();
         };
       }
-    }, CEREMONY_MS);
+    };
+  }
+
+  /** Runs every unfrozen frame with the real seconds since the previous frame (not capped like the physics dt). */
+  tick(dt) {
+    if (this.missionDelay === null) return;
+    // The first frame's elapsed time began before the ending started, so it does not count.
+    if (!this.missionDelayStarted) {
+      this.missionDelayStarted = true;
+      return;
+    }
+    this.missionDelay -= dt;
+    if (this.missionDelay > 0) return;
+    const reveal = this.missionReveal;
+    this.missionDelay = null;
+    this.missionReveal = null;
+    if (reveal) reveal();
   }
 
   showCeremony() {
@@ -615,10 +648,8 @@ export class ResponsiveUIManager {
 
   /** Cancels a pending result reveal and hides the ceremony and result box (restart / back to title). */
   clearMissionResult() {
-    if (this.missionTimer) {
-      clearTimeout(this.missionTimer);
-      this.missionTimer = null;
-    }
+    this.missionDelay = null;
+    this.missionReveal = null;
     this.hideCeremony();
     if (this.missionResultContainer) {
       this.missionResultContainer.classList.add('hidden');

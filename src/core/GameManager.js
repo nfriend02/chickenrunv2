@@ -313,9 +313,11 @@ export class GameManager {
       return;
     }
 
-    const dt = Math.min(0.1, (currentTime - this.lastTime) / 1000);
+    const elapsed = Math.max(0, (currentTime - this.lastTime) / 1000);
+    const dt = Math.min(0.1, elapsed);
     this.lastTime = currentTime;
     this.animTime += dt;
+    this.uiManager.tick(elapsed);
 
     if (this.state === GameStateEnum.PLAYING) {
       this.inputManager.update(dt);
