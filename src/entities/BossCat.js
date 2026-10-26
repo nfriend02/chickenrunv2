@@ -394,6 +394,15 @@ export class BossCat {
     if (this.onMissionSuccess) this.onMissionSuccess();
   }
 
+  /** False while the cat's ending animation (launched → dizzy, or face-plant in the hay) is still playing. */
+  isEndingSettled() {
+    if (!this.active) return true;
+    if (this.state === 'DEFEATED') return false;
+    if (this.state === 'DIZZY') return this.stateTimer >= CLIP_FOR_STATE.DIZZY.duration;
+    if (this.state === 'BURIED') return this.stateTimer >= CLIP_FOR_STATE.BURIED.duration;
+    return true;
+  }
+
   clipSpec() {
     if (this.state === 'STALKING' && Math.abs(this.laneSpeed) > DIAG_LANE_SPEED) return DIAG_CLIP;
     return CLIP_FOR_STATE[this.state];

@@ -208,6 +208,11 @@ export class GameManager {
     this.uiManager.updateFreezeButton(on);
   }
 
+  /** The result box waits for this: the cat's ending animation has finished (the hero's caught clip is 1.8 s). */
+  isEndingSettled() {
+    return this.bossCat.isEndingSettled();
+  }
+
   toggleFrozen() {
     this.setFrozen(!this.frozen);
   }

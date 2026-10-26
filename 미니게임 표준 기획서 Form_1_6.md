@@ -627,7 +627,7 @@ stateDiagram-v2
 3. **Authentication → 설정 → 승인된 도메인**: `localhost`, `{project}.web.app`, `{project}.firebaseapp.com`, `{project}.vercel.app`, 커스텀 도메인 추가. (빠뜨리면 Google 로그인 팝업이 실패한다.) ✅
 4. **Firestore Database** 생성(프로덕션 모드, 지역 `asia-northeast3` 서울 권장) → 9.6의 규칙 배포.
 5. **Firestore → TTL 정책**: 컬렉션 `users`, 필드 `expireAt` (게스트 기록 자동 삭제). ✅
-6. (관리자) Custom Claims 부여용 Admin SDK 스크립트 또는 Cloud Function 준비(11장).
+6. (관리자) Firestore `admins` 컬렉션에 관리자 로그인 이메일 문서 추가 + 규칙 배포(11장). ✅
 7. CLI: `npx -y firebase-tools@latest login` → `.firebaserc`에 프로젝트 ID.
 
 ## 9.3 로그인·회원가입 4종 ✅
@@ -716,21 +716,40 @@ service cloud.firestore {
 
 | 상황 | 연출 | 동작 (3.0초) | 사운드 | 후속 |
 | :--- | :--- | :--- | :--- | :--- |
-| 클리어 | 환호 (Cheer) | 주인공 `victory` 클립, 폭죽 파티클, 승리 배너 | 팡파레 + 환호음 | 결과 화면 |
+| 클리어 | 환호 (Cheer) | 주인공 `victory` 클립, 상단 하늘·양옆 가장자리에만 반짝이·광선 (캐릭터 위 텍스트 없음) | 팡파레 + 환호음 | 결과 화면 |
 | 실패 | 시무룩 (Sulk) | 주인공 `caught`/`defeat` 클립, 블루 비네팅 | 단조 SFX | 결과 화면 |
 
 - chickenrunv2는 `CEREMONY_MS = 3000`으로 결과 패널 표시 전 3초 연출을 보장한다. ✅
+- **결과 박스·"스코어 보기" 버튼은 ① 3초 경과 AND ② 보스 결말 애니메이션 종료(`isEndingSettled()`)를 모두 만족한 뒤에만** 나타난다. 엔딩 중에는 주인공·악당을 가리는 텍스트/배너/박스를 띄우지 않는다. 카운트는 실제 경과 시간 기준, 관리자 정지 중에는 멈춘다. ✅
 - 보스 결말(고양이가 건초더미에 파묻힘 등)은 보스 상태 머신의 `defeated`/`launched` 클립으로 연출한다. ✅
 - 스틸컷: 마지막 프레임을 0.5초 정지 후 결과 모달 페이드인.
 
+## 10.1 인게임 알림 메시지 규칙 (캐릭터 가림 금지) ✅
+- 대상: 보스 등장·급습 경고·회피 성공·스테이지 경고 등 **플레이 중 화면 중앙에 뜨는 모든 메시지**.
+- 생성 후 **0.5초 유지 → 축소(×0.22)하며 좌상단/우상단 끝으로 번갈아 흘러가 3초에 화면 밖 완전 소멸**.
+- 이동 곡선은 출발이 빠른 ease-out: **1.0초 시점에 이미 화면 가장자리 상단**에 도달해 주인공·악당을 1초 이상 가리지 않는다.
+- 각 메시지는 독립 복제본으로 동시 다발 가능, 같은 문구 400ms 내 중복은 무시. HUD 표시/숨김 시 일괄 제거.
+- 검증: 애니메이션 시각을 고정해 위치를 샘플링(`flycurve.mjs`) — 0.5s 중앙, 1.0s 가장자리, 3.0s 소멸.
+
 ---
 
-# **11. 관리자(Admin) 'Pause/Go' 시스템** 🟨 (Form_1_5_2 계승)
-- 관리자 계정: `byki@daum.net`. 비밀번호·권한 플래그를 클라이언트 코드에 하드코딩하지 않는다.
-- 권한: Firebase **Custom Claims `admin: true`** (Admin SDK로 1회 부여). 클라이언트는 `getIdTokenResult()`의 `claims.admin`으로만 판단.
-- 버튼: 인게임 우측 상단 최외곽(12px). `⏸ Pause` → 물리·스크롤·타이머·스폰 즉시 정지, `▶ Go` → 즉시 재개. 단축키 `F8`.
-- 관리자 Pause 중 표시: 엔티티 히트박스, 레인 경계, 현재 상태 이름(디버그 오버레이).
-- 일반 사용자: DOM 자체를 만들지 않거나 `display:none !important`.
+# **11. 관리자(Admin) '화면 정지/재개' 시스템** ✅
+- 목적: 진행 중인 게임 순간을 **팝업 없이 그대로 정지**시켜 UX·디자인을 정지 화면으로 점검.
+- 관리자 목록: Firestore 컬렉션 **`admins/{로그인 이메일(소문자)}`** 문서의 존재 여부로 판단. 코드에 이메일·권한을 하드코딩하지 않는다.
+  - 이메일 계정: `admins/byki@daum.net`
+  - 휴대폰 계정: `admins/{국가코드}-{앞자리 0 뺀 번호}@phone.{도메인}` (예: `admins/82-1052799244@phone.chickenrunv2.app`)
+- 추가/삭제: **Firebase Console → Firestore → `admins` 컬렉션에서 문서를 직접 추가/삭제** (필드 불필요). 다음 로그인/새로고침부터 반영.
+- 보안 규칙: 본인 이메일 문서만, 비밀번호 로그인(`sign_in_provider == 'password'`)일 때만 읽기 가능. 쓰기는 전면 금지.
+  ```
+  match /admins/{email} {
+    allow read: if request.auth != null && request.auth.token.firebase.sign_in_provider == 'password' && request.auth.token.email == email;
+    allow write: if false;
+  }
+  ```
+- ⚠️ 관리자 이메일은 **반드시 Firebase Auth에 먼저 가입**해 둔다(미가입 상태면 타인이 그 이메일로 가입해 권한을 얻을 수 있음).
+- 버튼: 인게임 좌측 상단 `⏸️`(정지) / `▶️`(재개), 관리자만 `.admin-visible`로 노출. 단축키 `F8`(관리자 + HUD 표시 중에만).
+- 정지 동작: 게임 루프 업데이트·스크롤·스폰·타이머·엔딩 카운트 정지(렌더만 유지), CSS 애니메이션(`body.game-frozen`) 정지, 입력 차단, BGM 정지/재개.
+- 일반 사용자: 버튼 `display:none !important`, `F8` 무반응.
 
 ---
 
@@ -882,7 +901,7 @@ npm run dev   # vite.config.js: server { port: 3000, host: true }
 
 ### 15.2 조작 (Form_1_5_2 계승 + 검증)
 - 모바일: 좌하단 액션(점프) 버튼 68~84dp, 우하단 4방향 버튼. 버튼은 포인터 캡처를 해제해 손가락이 미끄러져도 놓친 입력이 생기지 않게 한다. ✅
-- 데스크톱: `WASD`/방향키 이동, `Space` 액션, `Esc`/`P` 일시정지. 관리자 Pause `F8`(11장).
+- 데스크톱: `WASD`/방향키 이동, `Space` 액션, `Esc`/`P` 일시정지. 관리자 화면 정지 `F8`(11장).
 - Safe Area: `env(safe-area-inset-*)`로 노치 회피.
 
 ### 15.3 PWA & 설치 아이콘 ✅
@@ -1016,7 +1035,7 @@ graph TD
 | **Q14** | DB 왕복 | 실서비스에서 저장→새로고침→복원, 규칙 위반 필드 거부, 게스트 `expireAt` 설정 |
 | **Q15** | 3초 엔딩 | 성공 환호 / 실패 시무룩 3초 후 결과 화면 |
 | **Q16** | 스테이지 | 5개 스테이지 해금·최고 점수 저장 |
-| **Q17** | 관리자 Pause/Go | Custom Claims 관리자만 노출, 즉시 정지/재개 |
+| **Q17** | 관리자 Pause/Go | Firestore `admins/` 등록 계정에만 노출, 팝업 없이 화면 그대로 정지/재개, 일반 사용자는 버튼·F8 모두 무반응 |
 | **Q18** | 30분 무입력 | 자동 로그아웃, 플레이·엔딩 중 보류 |
 | **Q19** | 회원 탈퇴 | 2단계 확인, 문서·Auth 삭제, 로그인 화면 복귀 |
 | **Q20** | i18n 완전성 | 3개 언어 × 전 화면에서 키 노출·빈 문구 0건, 언어 버튼 `English/Japanese/Korean` |

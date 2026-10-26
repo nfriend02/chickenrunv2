@@ -588,8 +588,9 @@ export class ResponsiveUIManager {
     this.clearMissionResult();
     if (isSuccess) this.showCeremony();
 
-    // The ending scene (hero's victory / caught scene) plays for CEREMONY_MS, with no text over it, before the box
-    // and button appear. Counted in tick() so the admin freeze holds the countdown too.
+    // The ending scene (hero's victory / caught scene) plays for at least CEREMONY_MS and until the cat's ending
+    // animation has finished, with no text over it, before the box and button appear. Counted in tick() so the
+    // admin freeze holds the countdown too.
     this.missionDelay = CEREMONY_MS / 1000;
     this.missionDelayStarted = false;
     this.missionReveal = () => {
@@ -617,7 +618,7 @@ export class ResponsiveUIManager {
       return;
     }
     this.missionDelay -= dt;
-    if (this.missionDelay > 0) return;
+    if (this.missionDelay > 0 || !this.gameManager.isEndingSettled()) return;
     const reveal = this.missionReveal;
     this.missionDelay = null;
     this.missionReveal = null;
@@ -628,11 +629,14 @@ export class ResponsiveUIManager {
     if (!this.missionCeremony) return;
     if (this.ceremonySparkles) {
       this.ceremonySparkles.innerHTML = '';
+      // Sparkles stay in the sky band and the side edges so the hero and the cat remain in clear view.
       for (let i = 0; i < 28; i++) {
         const star = document.createElement('span');
         star.textContent = i % 3 === 0 ? '✦' : '★';
-        star.style.left = `${Math.random() * 100}%`;
-        star.style.top = `${Math.random() * 75}%`;
+        const inSky = i % 2 === 0;
+        const edgeX = Math.random() * 16;
+        star.style.left = `${inSky ? Math.random() * 100 : (Math.random() < 0.5 ? edgeX : 84 + edgeX)}%`;
+        star.style.top = `${inSky ? Math.random() * 22 : 22 + Math.random() * 50}%`;
         star.style.fontSize = `${14 + Math.random() * 26}px`;
         star.style.animationDelay = `${(Math.random() * 1.2).toFixed(2)}s`;
         this.ceremonySparkles.appendChild(star);
