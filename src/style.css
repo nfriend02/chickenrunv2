@@ -203,6 +203,24 @@ button, input, .modal-card, .title-content, .dpad-btn, .action-btn, .opt-btn, .t
   transform: scale(0.92);
 }
 
+/* Admin tools stay out of the page entirely unless the signed-in account is listed in Firestore admins/. */
+.admin-only:not(.admin-visible) {
+  display: none !important;
+}
+
+#pause-btn.is-frozen {
+  border-color: #ff5252;
+  box-shadow: 0 0 0 3px rgba(255, 82, 82, 0.45), 0 4px 10px rgba(0,0,0,0.5);
+}
+
+/* Inspection freeze: hold every CSS animation and transition on its current frame. */
+body.game-frozen *,
+body.game-frozen *::before,
+body.game-frozen *::after {
+  animation-play-state: paused !important;
+  transition: none !important;
+}
+
 .feathers-display {
   display: flex;
   gap: 6px;
@@ -1325,12 +1343,12 @@ button, input, .modal-card, .title-content, .dpad-btn, .action-btn, .opt-btn, .t
   justify-content: flex-end;
 }
 
-/* Pause & Result Card */
-.pause-card, .result-card {
+/* Result Card */
+.result-card {
   text-align: center;
 }
 
-.pause-actions, .result-actions {
+.result-actions {
   display: flex;
   flex-direction: column;
   gap: 12px;

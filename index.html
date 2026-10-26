@@ -160,7 +160,7 @@
       <!-- Top HUD -->
       <header id="hud" class="hud-container hidden">
         <div class="hud-left">
-          <button id="pause-btn" class="hud-icon-btn" title="일시정지" data-i18n-title="hud.pause">⏸️</button>
+          <button id="pause-btn" class="hud-icon-btn admin-only" type="button" title="화면 정지 (관리자)" aria-label="화면 정지 (관리자)" data-i18n-title="hud.pause" data-i18n-aria="hud.pause">⏸️</button>
           <div id="feathers-container" class="feathers-display" title="남은 깃털 HP" data-i18n-title="hud.feathers">
             <!-- Dynamically populated with feathers -->
           </div>
@@ -529,18 +529,6 @@
           </div>
           <div class="modal-footer">
             <button id="save-settings-btn" class="comic-btn btn-primary" data-i18n="settings.done">확인 완료</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Pause Modal -->
-      <div id="pause-modal" class="modal-overlay hidden">
-        <div class="modal-card pause-card">
-          <h2 data-i18n="pause.title">⏸️ 일시 정지</h2>
-          <div class="pause-actions">
-            <button id="resume-btn" class="comic-btn btn-primary" data-i18n="pause.resume">계속하기 ▶</button>
-            <button id="restart-btn" class="comic-btn btn-secondary" data-i18n="pause.restart">다시 시작 🔄</button>
-            <button id="home-btn" class="comic-btn btn-secondary" data-i18n="pause.home">메인 화면 🏠</button>
           </div>
         </div>
       </div>

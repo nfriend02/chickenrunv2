@@ -19,7 +19,8 @@ export const STRINGS = {
   'intro.soundTurnOff': { ko: '사운드 끄기 (현재: 소리 ON)', en: 'Turn sound off (now on)', ja: 'サウンドをオフ（現在: オン）' },
   'intro.soundAria': { ko: '사운드 켜기/끄기', en: 'Sound on/off', ja: 'サウンド オン/オフ' },
   // In-game HUD and banners
-  'hud.pause': { ko: '일시정지', en: 'Pause', ja: '一時停止' },
+  'hud.pause': { ko: '화면 정지 (관리자, F8)', en: 'Freeze frame (admin, F8)', ja: '画面停止（管理者・F8）' },
+  'hud.resume': { ko: '계속 진행 (관리자, F8)', en: 'Resume (admin, F8)', ja: '再開（管理者・F8）' },
   'hud.feathers': { ko: '남은 깃털 HP', en: 'Feathers left (HP)', ja: '残りの羽根 (HP)' },
   'hud.warningDefault': { ko: '위험! 돌진 적 접근!', en: 'Danger! Something is charging!', ja: '危険！突進してくる敵！' },
   'warn.rush': { ko: '{name} 돌진 경고!', en: '{name} charging!', ja: '{name}が突進してくる！' },
@@ -144,12 +145,6 @@ export const STRINGS = {
     ja: '• <strong>モバイル縦</strong>: 画面下で片手操作 & クォータービュー縦スクロール'
   },
   'settings.done': { ko: '확인 완료', en: 'Done', ja: '完了' },
-
-  // Pause
-  'pause.title': { ko: '⏸️ 일시 정지', en: '⏸️ Paused', ja: '⏸️ 一時停止' },
-  'pause.resume': { ko: '계속하기 ▶', en: 'Resume ▶', ja: '続ける ▶' },
-  'pause.restart': { ko: '다시 시작 🔄', en: 'Restart 🔄', ja: 'やり直す 🔄' },
-  'pause.home': { ko: '메인 화면 🏠', en: 'Main menu 🏠', ja: 'メイン画面 🏠' },
 
   // Result
   'result.score': { ko: '최종 점수:', en: 'Final score:', ja: '最終スコア:' },

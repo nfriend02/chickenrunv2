@@ -28,6 +28,16 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Admin list: one document per admin, named after the login email in lower case
+    // (phone accounts: {countryCode}-{number}@phone.chickenrunv2.app). Managed only in the Firebase console;
+    // a signed-in user can read just the document for their own email, so the list itself stays private.
+    match /admins/{email} {
+      allow read: if request.auth != null
+                  && request.auth.token.firebase.sign_in_provider == 'password'
+                  && request.auth.token.email == email;
+      allow write: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

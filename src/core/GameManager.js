@@ -16,6 +16,8 @@ export class GameManager {
   constructor(canvas) {
     this.canvas = canvas;
     this.state = GameStateEnum.TITLE;
+    this.frozen = false;
+    this.frozenBgm = false;
 
     // Renderer
     this.renderer = new GameRenderer(this.canvas);
@@ -145,6 +147,7 @@ export class GameManager {
    */
   startGame() {
     console.log('🚀 [START GAME] Launching Stage 1 Gameplay Immediately!');
+    this.setFrozen(false);
     try {
       soundSynth.ensureContext();
       if (typeof soundSynth.playCollect === 'function') {
@@ -185,19 +188,28 @@ export class GameManager {
     }
   }
 
-  pauseGame() {
-    if (this.state === GameStateEnum.PLAYING) {
-      this.state = GameStateEnum.PAUSED;
-      soundSynth.stopBgm();
+  /**
+   * Admin-only inspection freeze: the current frame stays on screen exactly as it is
+   * (no simulation, animation, particles, timers driven by the loop, or input) until unfrozen.
+   */
+  setFrozen(on) {
+    if (this.frozen === on) return;
+    this.frozen = on;
+    this.inputManager.frozen = on;
+    document.body.classList.toggle('game-frozen', on);
+    if (on) {
+      this.frozenBgm = this.state === GameStateEnum.PLAYING;
+      if (this.frozenBgm) soundSynth.stopBgm();
+    } else {
+      this.lastTime = performance.now();
+      if (this.frozenBgm && this.state === GameStateEnum.PLAYING) soundSynth.startBgm();
+      this.frozenBgm = false;
     }
+    this.uiManager.updateFreezeButton(on);
   }
 
-  resumeGame() {
-    if (this.state === GameStateEnum.PAUSED) {
-      this.state = GameStateEnum.PLAYING;
-      this.lastTime = performance.now();
-      soundSynth.startBgm();
-    }
+  toggleFrozen() {
+    this.setFrozen(!this.frozen);
   }
 
   restartStage() {
@@ -216,6 +228,7 @@ export class GameManager {
   }
 
   returnToTitle() {
+    this.setFrozen(false);
     this.state = GameStateEnum.TITLE;
     soundSynth.stopBgm();
     this.bossCat.reset();
@@ -293,6 +306,12 @@ export class GameManager {
 
   loop(currentTime) {
     requestAnimationFrame((t) => this.loop(t));
+
+    if (this.frozen) {
+      this.lastTime = currentTime;
+      this.renderer.render(0);
+      return;
+    }
 
     const dt = Math.min(0.1, (currentTime - this.lastTime) / 1000);
     this.lastTime = currentTime;

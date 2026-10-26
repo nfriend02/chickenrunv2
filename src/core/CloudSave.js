@@ -29,6 +29,22 @@ export function formatPhone(cc, number) {
   return `+${cc} ${n}`;
 }
 
+/**
+ * Admins are listed in Firestore admins/{login email} (phone accounts use their login email,
+ * e.g. 82-1012345678@phone.chickenrunv2.app). Add or remove documents in the Firebase console;
+ * the rules let a signed-in user read only the document named after their own email.
+ */
+async function fetchIsAdmin(user) {
+  if (!user || user.isAnonymous || !user.email) return false;
+  try {
+    const snap = await getDoc(doc(db, 'admins', user.email.toLowerCase()));
+    return snap.exists();
+  } catch (e) {
+    console.warn('Admin check failed.', e);
+    return false;
+  }
+}
+
 function phoneFromLoginEmail(email) {
   const m = /^(\d+)-(\d+)@/.exec(email || '');
   return m ? formatPhone(m[1], m[2]) : null;
@@ -53,6 +69,7 @@ class CloudSave {
   constructor() {
     this.user = null;
     this.profile = null;
+    this.isAdmin = false;
     this.authResolved = false;
     this.syncing = false;
     this.listeners = new Set();
@@ -77,6 +94,7 @@ class CloudSave {
       user: this.user,
       profile: this.profile,
       provider: providerOf(this.user),
+      isAdmin: this.isAdmin,
       authResolved: this.authResolved,
       syncing: this.syncing,
       needsNickname: !!this.user && this.user.isAnonymous && !this.profile?.nickname,
@@ -109,11 +127,17 @@ class CloudSave {
   async handleUser(user) {
     this.user = user;
     this.authResolved = true;
+    this.isAdmin = false;
     this.profile = user ? { nickname: user.isAnonymous ? this.pendingNickname : null, accountId: this.pendingAccountId } : null;
     if (!user) {
       this.emit();
       return;
     }
+    fetchIsAdmin(user).then((isAdmin) => {
+      if (this.user !== user) return;
+      this.isAdmin = isAdmin;
+      this.emit();
+    });
     this.syncing = true;
     this.emit();
     let isNew = true;

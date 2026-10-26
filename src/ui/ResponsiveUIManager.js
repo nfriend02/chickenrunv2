@@ -3,6 +3,7 @@ import { saveSystem } from '../core/SaveSystem.js';
 import { soundSynth } from '../audio/SoundSynth.js';
 import { uxMode } from '../core/UXMode.js';
 import { charText, i18n, stageName, t } from '../core/i18n.js';
+import { cloudSave } from '../core/CloudSave.js';
 
 const CEREMONY_MS = 3000;
 
@@ -50,7 +51,8 @@ export class ResponsiveUIManager {
     this.charModal = document.getElementById('char-modal');
     this.stageModal = document.getElementById('stage-modal');
     this.settingsModal = document.getElementById('settings-modal');
-    this.pauseModal = document.getElementById('pause-modal');
+    this.freezeBtn = document.getElementById('pause-btn');
+    this.isAdmin = false;
     this.resultModal = document.getElementById('result-modal');
 
     // Title Elements
@@ -125,25 +127,22 @@ export class ResponsiveUIManager {
       });
     });
 
-    // Pause Button & Actions
-    document.getElementById('pause-btn').addEventListener('click', () => {
-      this.gameManager.pauseGame();
-      this.openModal('pause-modal');
+    // Admin-only freeze button (stays out of the DOM layout for everyone else); F8 toggles it too.
+    this.freezeBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      // Drop focus so Space (the jump key) cannot re-press the button.
+      this.freezeBtn.blur();
+      if (this.isAdmin) this.gameManager.toggleFrozen();
     });
-
-    document.getElementById('resume-btn').addEventListener('click', () => {
-      this.closeModal('pause-modal');
-      this.gameManager.resumeGame();
+    window.addEventListener('keydown', (e) => {
+      if (e.code !== 'F8' || !this.isAdmin || this.hud.classList.contains('hidden')) return;
+      e.preventDefault();
+      this.gameManager.toggleFrozen();
     });
-
-    document.getElementById('restart-btn').addEventListener('click', () => {
-      this.closeModal('pause-modal');
-      this.gameManager.restartStage();
-    });
-
-    document.getElementById('home-btn').addEventListener('click', () => {
-      this.closeModal('pause-modal');
-      this.gameManager.returnToTitle();
+    cloudSave.subscribe((s) => {
+      this.isAdmin = !!s.isAdmin;
+      this.freezeBtn.classList.toggle('admin-visible', this.isAdmin);
+      if (!this.isAdmin) this.gameManager.setFrozen?.(false);
     });
 
     // Result Modal Actions
@@ -383,6 +382,16 @@ export class ResponsiveUIManager {
     if (this.stageProgressFill) this.stageProgressFill.style.width = '0%';
     if (this.feverFill) this.feverFill.style.width = '0%';
     if (this.comboBox) this.comboBox.classList.add('hidden');
+  }
+
+  updateFreezeButton(frozen) {
+    const btn = this.freezeBtn;
+    btn.textContent = frozen ? '▶️' : '⏸️';
+    btn.classList.toggle('is-frozen', frozen);
+    btn.dataset.i18nTitle = frozen ? 'hud.resume' : 'hud.pause';
+    btn.dataset.i18nAria = btn.dataset.i18nTitle;
+    btn.title = t(btn.dataset.i18nTitle);
+    btn.setAttribute('aria-label', btn.title);
   }
 
   hideHUD() {

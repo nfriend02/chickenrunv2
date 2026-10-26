@@ -3,6 +3,8 @@ import { soundSynth } from '../audio/SoundSynth.js';
 export class InputManager {
   constructor(player) {
     this.player = player;
+    // Set by GameManager during the admin inspection freeze; every input is ignored meanwhile.
+    this.frozen = false;
 
     this.keys = {
       ArrowUp: false,
@@ -29,6 +31,10 @@ export class InputManager {
 
   setupKeyboard() {
     window.addEventListener('keydown', (e) => {
+      if (this.frozen) {
+        if (e.code === 'Space') e.preventDefault();
+        return;
+      }
       if (this.keys.hasOwnProperty(e.code)) {
         this.keys[e.code] = true;
       }
@@ -64,6 +70,7 @@ export class InputManager {
           e.preventDefault();
           e.stopPropagation();
         }
+        if (this.frozen) return;
         if (this.player) this.player.jump();
         jumpBtn.classList.add('active');
         setTimeout(() => jumpBtn.classList.remove('active'), 150);
@@ -83,6 +90,7 @@ export class InputManager {
           e.preventDefault();
           e.stopPropagation();
         }
+        if (this.frozen) return;
         if (this.holdingStates[dir] && btn.classList.contains('hover-active')) return;
         this.holdingStates[dir] = true;
         btn.classList.add('hover-active');
@@ -116,6 +124,7 @@ export class InputManager {
 
       // Mouse Hover (Desktop: moves instantly upon hovering without click!)
       btn.addEventListener('mouseenter', () => {
+        if (this.frozen) return;
         this.holdingStates[dir] = true;
         btn.classList.add('hover-active');
         if (this.player) this.player.stepMove(dir);
@@ -129,6 +138,7 @@ export class InputManager {
       // Regular click event fallback
       btn.addEventListener('click', (e) => {
         e.preventDefault();
+        if (this.frozen) return;
         if (this.player) {
           this.player.stepMove(dir);
         }
